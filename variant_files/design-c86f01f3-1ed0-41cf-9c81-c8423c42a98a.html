@@ -1,0 +1,316 @@
+<html lang="en" vid="0"><head vid="1">
+<meta charset="UTF-8" vid="2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+<title vid="4">Aether Link | The First Rite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" vid="5">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="6">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&amp;family=Cinzel:wght@400;700&amp;display=swap" rel="stylesheet" vid="7">
+<style vid="8">
+    :root {
+        --bg-parchment: #F3EFE0; 
+        --bg-card: #FDFBF6;       
+        --ink-primary: #1A1917;   
+        --ink-secondary: #4A4641; 
+        --accent-red: #D67C76;    
+        --accent-green: #8FA876;  
+        --accent-gold: #E8C568;   
+        --accent-blue: #6B9AC4;   
+        --radius-card: 12px;
+        --radius-sm: 4px;
+        --border-width: 1.5px;
+        --font-display: 'Cinzel', serif;
+        --font-body: 'Crimson Pro', serif;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        background-color: var(--bg-parchment);
+        color: var(--ink-primary);
+        font-family: var(--font-body);
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background-image: radial-gradient(#E8E1D0 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+
+    .app-container {
+        width: 1400px;
+        height: 1000px;
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 32px;
+        padding: 48px;
+        background-color: var(--bg-parchment);
+        border-radius: 8px;
+    }
+
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        border-right: 2px solid rgba(26, 25, 23, 0.1);
+        padding-right: 24px;
+    }
+
+    .brand {
+        font-family: var(--font-display);
+        font-size: 24px;
+        letter-spacing: 2px;
+        border-bottom: var(--border-width) solid var(--ink-primary);
+        padding-bottom: 16px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .brand-icon {
+        width: 24px;
+        height: 24px;
+        border: var(--border-width) solid var(--ink-primary);
+        border-radius: 50%;
+        position: relative;
+    }
+    
+    .brand-icon::after {
+        content: '';
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 6px; height: 6px;
+        background: var(--ink-primary);
+        border-radius: 50%;
+    }
+
+    .manifest-header {
+        font-family: var(--font-display);
+        font-size: 14px;
+        color: var(--ink-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .empty-peers {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        border: 1px dashed rgba(26, 25, 23, 0.2);
+        border-radius: var(--radius-card);
+        padding: 24px;
+        background: rgba(26, 25, 23, 0.02);
+    }
+
+    .empty-peers p {
+        font-style: italic;
+        color: var(--ink-secondary);
+        font-size: 16px;
+    }
+
+    .main-stage {
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+    }
+
+    .onboarding-hero {
+        text-align: center;
+        padding: 60px 0;
+        border-bottom: 1px solid rgba(26, 25, 23, 0.1);
+    }
+
+    .headline {
+        font-family: var(--font-display);
+        font-size: 48px;
+        margin-bottom: 16px;
+        color: var(--ink-primary);
+    }
+
+    .subline {
+        font-size: 20px;
+        font-style: italic;
+        color: var(--ink-secondary);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .instruction-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 24px;
+    }
+
+    .instruction-card {
+        background: var(--bg-card);
+        border: var(--border-width) solid var(--ink-primary);
+        padding: 32px 24px;
+        border-radius: var(--radius-card);
+        text-align: center;
+        box-shadow: 4px 4px 0 rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .step-number {
+        font-family: var(--font-display);
+        font-size: 18px;
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--ink-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-parchment);
+    }
+
+    .step-title {
+        font-family: var(--font-display);
+        font-size: 16px;
+        letter-spacing: 1px;
+    }
+
+    .step-desc {
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--ink-secondary);
+    }
+
+    .quick-start {
+        margin-top: auto;
+        background: var(--ink-primary);
+        color: var(--bg-parchment);
+        padding: 40px;
+        border-radius: var(--radius-card);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .qs-content h3 {
+        font-family: var(--font-display);
+        font-size: 24px;
+        margin-bottom: 8px;
+    }
+
+    .qs-content p {
+        font-style: italic;
+        opacity: 0.8;
+    }
+
+    .btn {
+        background: transparent;
+        border: 2px solid var(--ink-primary);
+        color: var(--ink-primary);
+        font-family: var(--font-display);
+        font-size: 14px;
+        padding: 16px 40px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        white-space: nowrap;
+    }
+
+    .btn-light {
+        background: var(--bg-parchment);
+        color: var(--ink-primary);
+    }
+
+    .btn-light:hover {
+        background: var(--bg-card);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .glyph-decoration {
+        opacity: 0.1;
+        font-family: var(--font-display);
+        font-size: 120px;
+        position: absolute;
+        pointer-events: none;
+    }
+
+</style>
+</head>
+<body vid="9">
+
+    <div class="app-container" vid="10">
+        
+        <aside class="sidebar" vid="11">
+            <div class="brand" vid="12">
+                <div class="brand-icon" vid="13"></div>
+                <span vid="14">Aether Link</span>
+            </div>
+            
+            <div class="manifest-header" vid="15">
+                <span vid="16">Active Covenant</span>
+                <span vid="17">(0)</span>
+            </div>
+
+            <div class="empty-peers" vid="18">
+                <p vid="19">The circle is empty.<br vid="20"><span style="font-size: 13px; opacity: 0.6;" vid="21">No active links detected.</span></p>
+            </div>
+        </aside>
+
+        <main class="main-stage" vid="22">
+            <div class="onboarding-hero" vid="23">
+                <h1 class="headline" vid="24">The Covenant Awaits</h1>
+                <p class="subline" vid="25">Before the link can be forged, you must prepare the vessels of communication. Follow the ancient protocols to connect your first peer.</p>
+            </div>
+
+            <div class="instruction-grid" vid="26">
+                <div class="instruction-card" vid="27">
+                    <div class="step-number" vid="28">I</div>
+                    <h4 class="step-title" vid="29">Forge the Sigil</h4>
+                    <p class="step-desc" vid="30">Generate a JSON configuration file containing your node's public identity and network address.</p>
+                </div>
+                <div class="instruction-card" vid="31">
+                    <div class="step-number" vid="32">II</div>
+                    <h4 class="step-title" vid="33">Exchange Essences</h4>
+                    <p class="step-desc" vid="34">Transmit your sigil to a peer and receive theirs in return. Connection requires mutual recognition.</p>
+                </div>
+                <div class="instruction-card" vid="35">
+                    <div class="step-number" vid="36">III</div>
+                    <h4 class="step-title" vid="37">Perform the Rite</h4>
+                    <p class="step-desc" vid="38">Cast the received sigil into the Configuration Rite to bind the peer to your local covenant.</p>
+                </div>
+            </div>
+
+            <div class="quick-start" vid="39">
+                <div class="qs-content" vid="40">
+                    <h3 vid="41">Begin the First Rite</h3>
+                    <p vid="42">Initiate a new connection through the configuration interface.</p>
+                </div>
+                <button class="btn btn-light" onclick="window.location.reload()" vid="43">Enter Configuration</button>
+            </div>
+
+            <div style="margin-top: 24px; padding: 24px; border: 1px solid rgba(26, 25, 23, 0.1); border-radius: var(--radius-card);" vid="44">
+                <h5 style="font-family: var(--font-display); font-size: 14px; margin-bottom: 12px; color: var(--ink-secondary);" vid="45">Seeking Guidance?</h5>
+                <ul style="list-style: none; display: flex; gap: 32px;" vid="46">
+                    <li vid="47"><a href="#" style="color: var(--accent-blue); text-decoration: none; font-style: italic;" vid="48">Read the Grimoire (Docs)</a></li>
+                    <li vid="49"><a href="#" style="color: var(--accent-blue); text-decoration: none; font-style: italic;" vid="50">Watch the Manifestation (Video)</a></li>
+                    <li vid="51"><a href="#" style="color: var(--accent-blue); text-decoration: none; font-style: italic;" vid="52">Common Ritual Errors (FAQ)</a></li>
+                </ul>
+            </div>
+        </main>
+
+    </div>
+
+</body></html>

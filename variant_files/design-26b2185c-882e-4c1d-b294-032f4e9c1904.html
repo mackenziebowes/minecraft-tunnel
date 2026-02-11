@@ -1,0 +1,423 @@
+<html lang="en" vid="0"><head vid="1">
+<meta charset="UTF-8" vid="2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+<title vid="4">P2P Oracle Manager - Ritual Progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" vid="5">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="6">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&amp;family=Cinzel:wght@400;700&amp;display=swap" rel="stylesheet" vid="7">
+<style vid="8">
+    :root {
+        --bg-parchment: #F3EFE0; 
+        --bg-card: #FDFBF6;       
+        --ink-primary: #1A1917;   
+        --ink-secondary: #4A4641; 
+        --accent-red: #D67C76;    
+        --accent-green: #8FA876;  
+        --accent-gold: #E8C568;   
+        --accent-blue: #6B9AC4;   
+        --radius-card: 12px;
+        --radius-sm: 4px;
+        --border-width: 1.5px;
+        --font-display: 'Cinzel', serif;
+        --font-body: 'Crimson Pro', serif;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        background-color: var(--bg-parchment);
+        color: var(--ink-primary);
+        font-family: var(--font-body);
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background-image: radial-gradient(#E8E1D0 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+
+    .app-container {
+        width: 1400px;
+        height: 1000px;
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 32px;
+        padding: 64px;
+        position: relative;
+    }
+
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        border-right: 2px solid rgba(26, 25, 23, 0.1);
+        padding-right: 24px;
+    }
+
+    .brand {
+        font-family: var(--font-display);
+        font-size: 24px;
+        letter-spacing: 2px;
+        border-bottom: var(--border-width) solid var(--ink-primary);
+        padding-bottom: 16px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .brand-icon {
+        width: 24px;
+        height: 24px;
+        border: var(--border-width) solid var(--ink-primary);
+        border-radius: 50%;
+        position: relative;
+    }
+    
+    .brand-icon::after {
+        content: '';
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 6px; height: 6px;
+        background: var(--ink-primary);
+        border-radius: 50%;
+    }
+
+    .manifest-header {
+        font-family: var(--font-display);
+        font-size: 14px;
+        color: var(--ink-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .peer-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .peer-card {
+        background: var(--bg-card);
+        border: var(--border-width) solid var(--ink-primary);
+        border-radius: var(--radius-card);
+        padding: 16px;
+        box-shadow: 0 0 0 3px var(--bg-parchment), 0 0 0 4px var(--ink-primary), 4px 4px 0 rgba(0,0,0,0.05);
+    }
+
+    .peer-top {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        border-bottom: 1px solid rgba(26, 25, 23, 0.1);
+        padding-bottom: 8px;
+    }
+
+    .roman-id {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 16px;
+    }
+
+    .status-indicator {
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        border: 1px solid var(--ink-primary);
+    }
+    .status-active { background-color: var(--accent-green); }
+    .status-pending { background-color: var(--accent-gold); }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+    }
+    
+    .detail-label { font-style: italic; opacity: 0.7; }
+    .mono-value { font-family: 'Crimson Pro', serif; font-variant-numeric: tabular-nums; }
+
+    .main-stage {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .headline { font-family: var(--font-display); font-size: 32px; }
+    .subline { font-style: italic; color: var(--ink-secondary); }
+
+    .drop-zone {
+        flex: 1;
+        border: 2px dashed var(--ink-secondary);
+        border-radius: var(--radius-card);
+        background: rgba(255,255,255,0.6);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .occult-symbol {
+        width: 120px; height: 120px;
+        border: 2px solid var(--ink-primary);
+        border-radius: 50%;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.2;
+    }
+
+    .file-chip {
+        position: absolute;
+        background: var(--bg-card);
+        border: 1px solid var(--ink-primary);
+        padding: 12px 24px;
+        border-radius: 50px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+    }
+
+    .action-bar {
+        display: flex;
+        justify-content: flex-end;
+        gap: 16px;
+        padding-top: 16px;
+        border-top: 2px solid rgba(26, 25, 23, 0.1);
+    }
+
+    .btn {
+        background: transparent;
+        border: 2px solid var(--ink-primary);
+        color: var(--ink-primary);
+        font-family: var(--font-display);
+        font-size: 14px;
+        padding: 12px 32px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    
+    .modal-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(243, 239, 224, 0.85);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+    .ritual-modal {
+        width: 560px;
+        background: var(--bg-card);
+        border: var(--border-width) solid var(--ink-primary);
+        border-radius: var(--radius-card);
+        padding: 48px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.15), 0 0 0 6px var(--bg-parchment), 0 0 0 8px var(--ink-primary);
+        position: relative;
+        text-align: center;
+    }
+
+    .ritual-progress-container {
+        margin: 32px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .step-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        text-align: left;
+        opacity: 0.4;
+        transition: opacity 0.3s ease;
+    }
+
+    .step-item.active { opacity: 1; }
+    .step-item.complete { opacity: 1; color: var(--accent-green); }
+
+    .step-orb {
+        width: 12px;
+        height: 12px;
+        border: 1px solid var(--ink-primary);
+        border-radius: 50%;
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    .complete .step-orb { background: var(--accent-green); }
+    .active .step-orb { background: var(--accent-gold); animation: pulse 1.5s infinite; }
+
+    @keyframes pulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(232, 197, 104, 0.7); }
+        70% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(232, 197, 104, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(232, 197, 104, 0); }
+    }
+
+    .step-text {
+        font-family: var(--font-display);
+        font-size: 14px;
+        letter-spacing: 0.5px;
+    }
+
+    .ritual-status-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .loading-spinner {
+        width: 60px;
+        height: 60px;
+        border: 2px solid rgba(26, 25, 23, 0.1);
+        border-top: 2px solid var(--ink-primary);
+        border-radius: 50%;
+        margin: 0 auto 24px;
+        animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .success-mark {
+        color: var(--accent-green);
+        font-family: var(--font-display);
+        font-size: 64px;
+        line-height: 1;
+        margin-bottom: 16px;
+    }
+
+    .modal-headline {
+        font-family: var(--font-display);
+        font-size: 24px;
+        margin-bottom: 8px;
+    }
+
+    .modal-subline {
+        font-style: italic;
+        color: var(--ink-secondary);
+        margin-bottom: 24px;
+    }
+</style>
+</head>
+<body vid="9">
+
+    <div class="app-container" vid="10">
+        
+        <aside class="sidebar" vid="11">
+            <div class="brand" vid="12">
+                <div class="brand-icon" vid="13"></div>
+                <span vid="14">Aether Link</span>
+            </div>
+            <div class="manifest-header" vid="15">
+                <span vid="16">Active Covenant</span>
+                <span vid="17">(3)</span>
+            </div>
+            <div class="peer-list" vid="18">
+                <div class="peer-card" vid="19">
+                    <div class="peer-top" vid="20">
+                        <span class="roman-id" vid="21">I. THE HERALD</span>
+                        <div class="status-indicator status-active" vid="22"></div>
+                    </div>
+                    <div class="peer-details" vid="23">
+                        <div class="detail-row" vid="24"><span class="detail-label" vid="25">Origin</span><span class="mono-value" vid="26">192.168.1.104</span></div>
+                        <div class="detail-row" vid="27"><span class="detail-label" vid="28">Latency</span><span class="mono-value" vid="29">24ms</span></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-stage" vid="30">
+            <header class="stage-header" vid="31">
+                <div vid="32">
+                    <h1 class="headline" vid="33">Configuration Rite</h1>
+                    <p class="subline" vid="34">Import the JSON sigil to bind new connections.</p>
+                </div>
+            </header>
+            <div class="drop-zone" vid="35">
+                <div class="occult-symbol" vid="36"><div class="symbol-inner" vid="37"><div class="symbol-eye" vid="38"></div></div></div>
+                <div class="file-chip" vid="39">
+                    <span class="file-icon" vid="40">{ }</span>
+                    <span vid="41">peers_manifest_v2.json</span>
+                    <span style="color: var(--accent-green);" vid="42">✓</span>
+                </div>
+            </div>
+            <footer class="action-bar" vid="43">
+                <button class="btn" style="background: var(--ink-primary); color: var(--bg-parchment);" vid="44">Initiate Link</button>
+            </footer>
+        </main>
+
+        
+        <div class="modal-overlay" id="ritualModal" vid="45">
+            <div class="ritual-modal" vid="46">
+                <div id="ritualStep1" vid="47">
+                    <div class="loading-spinner" vid="48"></div>
+                    <h2 class="modal-headline" vid="49">Performing Invocation</h2>
+                    <p class="modal-subline" vid="50">Synchronizing temporal nodes and binding the sigil...</p>
+                    
+                    <div class="ritual-progress-container" vid="51">
+                        <div class="step-item complete" vid="52">
+                            <div class="step-orb" vid="53"></div>
+                            <span class="step-text" vid="54">Sigil Validation: SUCCESS</span>
+                        </div>
+                        <div class="step-item active" vid="55">
+                            <div class="step-orb" vid="56"></div>
+                            <span class="step-text" vid="57">Handshake Initiation: IN PROGRESS</span>
+                        </div>
+                        <div class="step-item" vid="58">
+                            <div class="step-orb" vid="59"></div>
+                            <span class="step-text" vid="60">Peer IV Table Exchange</span>
+                        </div>
+                        <div class="step-item" vid="61">
+                            <div class="step-orb" vid="62"></div>
+                            <span class="step-text" vid="63">Finalizing Covenant</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="closeModal()" vid="64">Cease Rite</button>
+                </div>
+
+                
+                <div id="ritualSuccess" style="display:none;" vid="65">
+                    <div class="success-mark" vid="66">✧</div>
+                    <h2 class="modal-headline" vid="67">Ritual Complete</h2>
+                    <p class="modal-subline" vid="68">The Aether Link has been established. New peers added to the covenant.</p>
+                    <button class="btn" onclick="closeModal()" style="background: var(--ink-primary); color: var(--bg-parchment);" vid="69">Acknowledge</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script vid="70">
+        function closeModal() {
+            document.getElementById('ritualModal').style.display = 'none';
+        }
+
+        
+        setTimeout(() => {
+            const steps = document.querySelectorAll('.step-item');
+            if(steps[1]) {
+                steps[1].classList.remove('active');
+                steps[1].classList.add('complete');
+                steps[1].querySelector('.step-text').innerText = 'Handshake Initiation: SUCCESS';
+            }
+            if(steps[2]) steps[2].classList.add('active');
+        }, 3000);
+    </script>
+
+</body></html>

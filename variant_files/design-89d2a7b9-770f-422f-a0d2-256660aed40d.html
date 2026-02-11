@@ -1,0 +1,435 @@
+<html lang="en" vid="0"><head vid="1">
+<meta charset="UTF-8" vid="2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+<title vid="4">Aether Link | Observatory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" vid="5">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="6">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&amp;family=Cinzel:wght@400;700&amp;display=swap" rel="stylesheet" vid="7">
+<style vid="8">
+    :root {
+        --bg-parchment: #F3EFE0; 
+        --bg-card: #FDFBF6;       
+        --ink-primary: #1A1917;   
+        --ink-secondary: #4A4641; 
+        --accent-red: #D67C76;    
+        --accent-green: #8FA876;  
+        --accent-gold: #E8C568;   
+        --accent-blue: #6B9AC4;   
+        --radius-card: 12px;
+        --radius-sm: 4px;
+        --border-width: 1.5px;
+        --font-display: 'Cinzel', serif;
+        --font-body: 'Crimson Pro', serif;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        background-color: var(--bg-parchment);
+        color: var(--ink-primary);
+        font-family: var(--font-body);
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background-image: radial-gradient(#E8E1D0 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+
+    .app-container {
+        width: 1400px;
+        height: 1000px;
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 32px;
+        padding: 40px;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        border-right: 2px solid rgba(26, 25, 23, 0.1);
+        padding-right: 24px;
+    }
+
+    .brand {
+        font-family: var(--font-display);
+        font-size: 24px;
+        letter-spacing: 2px;
+        border-bottom: var(--border-width) solid var(--ink-primary);
+        padding-bottom: 16px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .brand-icon {
+        width: 24px;
+        height: 24px;
+        border: var(--border-width) solid var(--ink-primary);
+        border-radius: 50%;
+        position: relative;
+    }
+    
+    .brand-icon::after {
+        content: '';
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 6px; height: 6px;
+        background: var(--ink-primary);
+        border-radius: 50%;
+    }
+
+    .nav-item {
+        font-family: var(--font-display);
+        font-size: 14px;
+        padding: 12px;
+        cursor: pointer;
+        border-radius: var(--radius-sm);
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink-secondary);
+        text-decoration: none;
+    }
+
+    .nav-item.active {
+        background: rgba(26, 25, 23, 0.05);
+        color: var(--ink-primary);
+        border-left: 3px solid var(--ink-primary);
+    }
+
+    .peer-card {
+        background: var(--bg-card);
+        border: var(--border-width) solid var(--ink-primary);
+        border-radius: var(--radius-card);
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 4px 4px 0 rgba(0,0,0,0.05);
+    }
+
+    .main-stage {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        overflow-y: auto;
+        padding-right: 12px;
+    }
+
+    .headline-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+
+    .headline {
+        font-family: var(--font-display);
+        font-size: 36px;
+    }
+
+    .health-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+
+    .metric-box {
+        background: var(--bg-card);
+        border: var(--border-width) solid var(--ink-primary);
+        padding: 20px;
+        border-radius: var(--radius-card);
+        position: relative;
+    }
+
+    .metric-label {
+        font-family: var(--font-display);
+        font-size: 12px;
+        text-transform: uppercase;
+        color: var(--ink-secondary);
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .metric-value {
+        font-size: 32px;
+        font-weight: 700;
+        font-family: var(--font-display);
+    }
+
+    .viz-container {
+        background: var(--bg-card);
+        border: var(--border-width) solid var(--ink-primary);
+        border-radius: var(--radius-card);
+        padding: 24px;
+        flex: 1;
+        min-height: 400px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        font-family: var(--font-display);
+    }
+
+    
+    .graph-svg {
+        width: 100%;
+        height: 300px;
+        stroke: var(--ink-primary);
+        stroke-width: 2;
+        fill: none;
+    }
+
+    .graph-node {
+        fill: var(--bg-card);
+        stroke: var(--ink-primary);
+        stroke-width: 2;
+    }
+
+    .graph-node.active { fill: var(--accent-green); }
+    .graph-node.warning { fill: var(--accent-gold); }
+
+    .pulse {
+        animation: pulse-ring 2s infinite;
+    }
+
+    @keyframes pulse-ring {
+        0% { stroke-width: 1; opacity: 1; r: 6; }
+        100% { stroke-width: 0; opacity: 0; r: 20; }
+    }
+
+    .connection-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+        margin-top: 16px;
+    }
+
+    .connection-table th {
+        text-align: left;
+        font-family: var(--font-display);
+        font-size: 12px;
+        padding: 8px 16px;
+        color: var(--ink-secondary);
+    }
+
+    .connection-table td {
+        background: var(--bg-card);
+        padding: 16px;
+        border-top: 1.5px solid var(--ink-primary);
+        border-bottom: 1.5px solid var(--ink-primary);
+    }
+
+    .connection-table td:first-child {
+        border-left: 1.5px solid var(--ink-primary);
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
+    }
+
+    .connection-table td:last-child {
+        border-right: 1.5px solid var(--ink-primary);
+        border-top-right-radius: 8px;
+        border-bottom-right-radius: 8px;
+    }
+
+    .status-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    .mini-chart {
+        width: 100px;
+        height: 20px;
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+    }
+
+    .bar {
+        width: 4px;
+        background: var(--ink-secondary);
+        transition: height 0.3s;
+    }
+
+</style>
+</head>
+<body vid="9">
+
+    <div class="app-container" vid="10">
+        <aside class="sidebar" vid="11">
+            <div class="brand" vid="12">
+                <div class="brand-icon" vid="13"></div>
+                <span vid="14">Aether Link</span>
+            </div>
+            
+            <nav style="display: flex; flex-direction: column; gap: 8px;" vid="15">
+                <a href="#" class="nav-item active" vid="16">
+                    <span vid="17">⟁ Observatory</span>
+                </a>
+                <a href="#" class="nav-item" vid="18">
+                    <span vid="19">☌ Configuration Rite</span>
+                </a>
+                <a href="#" class="nav-item" vid="20">
+                    <span vid="21">📜 Archive Scroll</span>
+                </a>
+            </nav>
+
+            <div style="margin-top: auto;" vid="22">
+                <div class="manifest-header" style="font-family: var(--font-display); font-size: 12px; margin-bottom: 12px;" vid="23">
+                    SYSTEM VIGILANCE
+                </div>
+                <div class="peer-card" style="margin-bottom: 0; background: rgba(143, 168, 118, 0.1);" vid="24">
+                    <div style="font-size: 14px; display: flex; justify-content: space-between;" vid="25">
+                        <span vid="26">Sync Integrity</span>
+                        <span style="color: var(--accent-green);" vid="27">99.4%</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-stage" vid="28">
+            <header class="headline-row" vid="29">
+                <div vid="30">
+                    <h1 class="headline" vid="31">Network Observatory</h1>
+                    <p class="subline" style="font-style: italic; color: var(--ink-secondary);" vid="32">Monitoring the ethereal threads of the current covenant.</p>
+                </div>
+                <div style="display: flex; gap: 12px;" vid="33">
+                    <button style="background: transparent; border: 1.5px solid var(--ink-primary); padding: 8px 16px; font-family: var(--font-display); cursor: pointer;" vid="34">↻ Refresh</button>
+                </div>
+            </header>
+
+            <section class="health-grid" vid="35">
+                <div class="metric-box" vid="36">
+                    <span class="metric-label" vid="37">Total Bound Peers</span>
+                    <div class="metric-value" vid="38">14</div>
+                    <div style="font-size: 12px; color: var(--accent-green); margin-top: 4px;" vid="39">+2 since last dawn</div>
+                </div>
+                <div class="metric-box" vid="40">
+                    <span class="metric-label" vid="41">Ethereal Throughput</span>
+                    <div class="metric-value" vid="42">4.2 <span style="font-size: 16px;" vid="43">mb/s</span></div>
+                    <div style="font-size: 12px; color: var(--ink-secondary); margin-top: 4px;" vid="44">Stable resonance</div>
+                </div>
+                <div class="metric-box" vid="45">
+                    <span class="metric-label" vid="46">Average Latency</span>
+                    <div class="metric-value" vid="47">42 <span style="font-size: 16px;" vid="48">ms</span></div>
+                    <div style="font-size: 12px; color: var(--accent-gold); margin-top: 4px;" vid="49">Minor jitter detected</div>
+                </div>
+            </section>
+
+            <section class="viz-container" vid="50">
+                <div class="chart-header" vid="51">
+                    <span vid="52">COVENANT TOPOLOGY</span>
+                    <span style="font-size: 12px; opacity: 0.6;" vid="53">Real-time propagation map</span>
+                </div>
+                
+                <svg class="graph-svg" viewBox="0 0 800 300" vid="54">
+                    
+                    <line x1="100" y1="150" x2="300" y2="80" stroke-opacity="0.3" vid="55"></line>
+                    <line x1="100" y1="150" x2="300" y2="220" stroke-opacity="0.3" vid="56"></line>
+                    <line x1="300" y1="80" x2="500" y2="50" stroke-opacity="0.3" vid="57"></line>
+                    <line x1="300" y1="80" x2="500" y2="150" stroke-opacity="0.3" vid="58"></line>
+                    <line x1="300" y1="220" x2="500" y2="150" stroke-opacity="0.3" vid="59"></line>
+                    <line x1="300" y1="220" x2="500" y2="250" stroke-opacity="0.3" vid="60"></line>
+                    
+                    
+                    <g vid="61">
+                        <circle cx="100" cy="150" r="12" class="graph-node active" vid="62"></circle>
+                        <circle cx="100" cy="150" r="12" fill="none" stroke="var(--accent-green)" class="pulse" vid="63"></circle>
+                    </g>
+                    
+                    <circle cx="300" cy="80" r="8" class="graph-node active" vid="64"></circle>
+                    <circle cx="300" cy="220" r="8" class="graph-node active" vid="65"></circle>
+                    
+                    <circle cx="500" cy="50" r="8" class="graph-node active" vid="66"></circle>
+                    <circle cx="500" cy="150" r="8" class="graph-node warning" vid="67"></circle>
+                    <circle cx="500" cy="250" r="8" class="graph-node active" vid="68"></circle>
+                </svg>
+
+                <div style="position: absolute; bottom: 20px; right: 24px; display: flex; gap: 16px; font-size: 12px; font-family: var(--font-display);" vid="69">
+                    <div style="display: flex; align-items: center; gap: 6px;" vid="70">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green);" vid="71"></div> ACTIVE
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;" vid="72">
+                        <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent-gold);" vid="73"></div> UNSTABLE
+                    </div>
+                </div>
+            </section>
+
+            <section vid="74">
+                <h3 style="font-family: var(--font-display); font-size: 18px; margin-bottom: 8px;" vid="75">Active Threads</h3>
+                <table class="connection-table" vid="76">
+                    <thead vid="77">
+                        <tr vid="78">
+                            <th vid="79">IDENTITY</th>
+                            <th vid="80">STATUS</th>
+                            <th vid="81">LATENCY</th>
+                            <th vid="82">LOAD VIZ</th>
+                            <th vid="83">HASH BIND</th>
+                        </tr>
+                    </thead>
+                    <tbody vid="84">
+                        <tr vid="85">
+                            <td style="font-family: var(--font-display);" vid="86">IV. THE WATCHER</td>
+                            <td vid="87">
+                                <span class="status-tag" style="color: var(--accent-green);" vid="88">
+                                    <span style="width: 6px; height: 6px; background: var(--accent-green); border-radius: 50%;" vid="89"></span>
+                                    Synchronized
+                                </span>
+                            </td>
+                            <td class="mono-value" vid="90">12ms</td>
+                            <td vid="91">
+                                <div class="mini-chart" vid="92">
+                                    <div class="bar" style="height: 60%;" vid="93"></div>
+                                    <div class="bar" style="height: 80%;" vid="94"></div>
+                                    <div class="bar" style="height: 40%;" vid="95"></div>
+                                    <div class="bar" style="height: 90%;" vid="96"></div>
+                                    <div class="bar" style="height: 70%;" vid="97"></div>
+                                </div>
+                            </td>
+                            <td class="mono-value" style="color: var(--accent-blue);" vid="98">0x3A...11E</td>
+                        </tr>
+                        <tr vid="99">
+                            <td style="font-family: var(--font-display);" vid="100">V. THE NOMAD</td>
+                            <td vid="101">
+                                <span class="status-tag" style="color: var(--accent-gold);" vid="102">
+                                    <span style="width: 6px; height: 6px; background: var(--accent-gold); border-radius: 50%;" vid="103"></span>
+                                    Fluctuating
+                                </span>
+                            </td>
+                            <td class="mono-value" vid="104">145ms</td>
+                            <td vid="105">
+                                <div class="mini-chart" vid="106">
+                                    <div class="bar" style="height: 20%;" vid="107"></div>
+                                    <div class="bar" style="height: 30%;" vid="108"></div>
+                                    <div class="bar" style="height: 25%;" vid="109"></div>
+                                    <div class="bar" style="height: 15%;" vid="110"></div>
+                                    <div class="bar" style="height: 20%;" vid="111"></div>
+                                </div>
+                            </td>
+                            <td class="mono-value" style="color: var(--accent-blue);" vid="112">0xBC...D44</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+</body></html>

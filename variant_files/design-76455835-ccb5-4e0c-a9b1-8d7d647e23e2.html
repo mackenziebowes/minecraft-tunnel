@@ -1,0 +1,298 @@
+<html lang="en" vid="0"><head vid="1">
+<meta charset="UTF-8" vid="2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+<title vid="4">P2P Oracle Manager - Empty State</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" vid="5">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="6">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;0,700;1,400&amp;family=Cinzel:wght@400;700&amp;display=swap" rel="stylesheet" vid="7">
+<style vid="8">
+    :root {
+        --bg-parchment: #F3EFE0; 
+        --bg-card: #FDFBF6;       
+        --ink-primary: #1A1917;   
+        --ink-secondary: #4A4641; 
+        --accent-red: #D67C76;    
+        --accent-green: #8FA876;  
+        --accent-gold: #E8C568;   
+        --accent-blue: #6B9AC4;   
+        --radius-card: 12px;
+        --radius-sm: 4px;
+        --border-width: 1.5px;
+        --font-display: 'Cinzel', serif;
+        --font-body: 'Crimson Pro', serif;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        background-color: var(--bg-parchment);
+        color: var(--ink-primary);
+        font-family: var(--font-body);
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background-image: radial-gradient(#E8E1D0 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+
+    .app-container {
+        width: 1400px;
+        height: 1000px;
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 32px;
+        padding: 48px;
+        background: var(--bg-parchment);
+        border-radius: 8px;
+        position: relative;
+    }
+
+    .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        border-right: 2px solid rgba(26, 25, 23, 0.1);
+        padding-right: 24px;
+    }
+
+    .brand {
+        font-family: var(--font-display);
+        font-size: 24px;
+        letter-spacing: 2px;
+        border-bottom: var(--border-width) solid var(--ink-primary);
+        padding-bottom: 16px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .brand-icon {
+        width: 24px;
+        height: 24px;
+        border: var(--border-width) solid var(--ink-primary);
+        border-radius: 50%;
+        position: relative;
+    }
+    
+    .brand-icon::after {
+        content: '';
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 6px; height: 6px;
+        background: var(--ink-primary);
+        border-radius: 50%;
+    }
+
+    .manifest-header {
+        font-family: var(--font-display);
+        font-size: 14px;
+        color: var(--ink-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .empty-sidebar-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        opacity: 0.5;
+        border: 1px dashed var(--ink-secondary);
+        border-radius: var(--radius-card);
+        padding: 24px;
+    }
+
+    .empty-sidebar-text {
+        font-style: italic;
+        font-size: 14px;
+        margin-top: 12px;
+    }
+
+    .main-stage {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        gap: 32px;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .onboarding-circle {
+        width: 280px;
+        height: 280px;
+        border: 1px solid var(--ink-primary);
+        border-radius: 50%;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .onboarding-circle::before {
+        content: '';
+        position: absolute;
+        width: 320px;
+        height: 320px;
+        border: 1px solid var(--ink-secondary);
+        border-radius: 50%;
+        opacity: 0.3;
+        animation: rotate 60s linear infinite;
+    }
+
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .central-sigil {
+        width: 100px;
+        height: 100px;
+        border: 2px solid var(--ink-primary);
+        transform: rotate(45deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sigil-eye {
+        width: 30px;
+        height: 30px;
+        background: var(--ink-primary);
+        border-radius: 50%;
+        box-shadow: 0 0 0 6px var(--bg-parchment), 0 0 0 8px var(--ink-primary);
+        transform: rotate(-45deg);
+    }
+
+    .hero-text h1 {
+        font-family: var(--font-display);
+        font-size: 48px;
+        margin-bottom: 16px;
+        letter-spacing: 2px;
+    }
+
+    .hero-text p {
+        font-size: 20px;
+        font-style: italic;
+        color: var(--ink-secondary);
+        max-width: 500px;
+    }
+
+    .onboarding-steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        width: 100%;
+        margin-top: 24px;
+    }
+
+    .step-card {
+        padding: 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--ink-primary);
+        border-radius: var(--radius-card);
+        box-shadow: 4px 4px 0 rgba(0,0,0,0.05);
+    }
+
+    .step-num {
+        font-family: var(--font-display);
+        font-weight: bold;
+        display: block;
+        margin-bottom: 8px;
+        color: var(--accent-gold);
+    }
+
+    .step-desc {
+        font-size: 15px;
+        line-height: 1.4;
+    }
+
+    .btn-primary {
+        background: var(--ink-primary);
+        color: var(--bg-parchment);
+        border: 2px solid var(--ink-primary);
+        font-family: var(--font-display);
+        font-size: 18px;
+        padding: 16px 48px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        box-shadow: 6px 6px 0 rgba(0,0,0,0.1);
+    }
+
+    .btn-primary:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: 8px 8px 0 rgba(0,0,0,0.15);
+    }
+
+</style>
+</head>
+<body vid="9">
+
+    <div class="app-container" vid="10">
+        
+        <aside class="sidebar" vid="11">
+            <div class="brand" vid="12">
+                <div class="brand-icon" vid="13"></div>
+                <span vid="14">Aether Link</span>
+            </div>
+            
+            <div class="manifest-header" vid="15">
+                <span vid="16">Active Covenant</span>
+                <span vid="17">(0)</span>
+            </div>
+
+            <div class="empty-sidebar-state" vid="18">
+                <div class="brand-icon" style="opacity: 0.3; transform: scale(1.5);" vid="19"></div>
+                <p class="empty-sidebar-text" vid="20">The Great Hall is silent. No peers have been summoned to the covenant.</p>
+            </div>
+        </aside>
+
+        <main class="main-stage" vid="21">
+            <div class="onboarding-circle" vid="22">
+                <div class="central-sigil" vid="23">
+                    <div class="sigil-eye" vid="24"></div>
+                </div>
+            </div>
+
+            <div class="hero-text" vid="25">
+                <h1 vid="26">Silence in the Void</h1>
+                <p vid="27">Your oracle stands alone. Initiate the Configuration Rite to bind your first peer connection.</p>
+            </div>
+
+            <div class="onboarding-steps" vid="28">
+                <div class="step-card" vid="29">
+                    <span class="step-num" vid="30">I. PREPARE</span>
+                    <p class="step-desc" vid="31">Generate or obtain a JSON connection sigil from your intended peer.</p>
+                </div>
+                <div class="step-card" vid="32">
+                    <span class="step-num" vid="33">II. BIND</span>
+                    <p class="step-desc" vid="34">Cast the sigil into the circle to define the metadata of the link.</p>
+                </div>
+                <div class="step-card" vid="35">
+                    <span class="step-num" vid="36">III. INVOKE</span>
+                    <p class="step-desc" vid="37">Perform the handshake to establish a secure, encrypted aetheric bridge.</p>
+                </div>
+            </div>
+
+            <button class="btn-primary" style="margin-top: 24px;" vid="38">Begin the Rite</button>
+        </main>
+
+    </div>
+
+</body></html>
