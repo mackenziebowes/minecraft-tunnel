@@ -118,3 +118,20 @@ func TestExportToFileWritesToken(t *testing.T) {
 		t.Fatalf("Expected 'test-token', got '%s'", string(content))
 	}
 }
+
+func TestImportFromFileReadsToken(t *testing.T) {
+	tmpfile := "/tmp/test-read.mc-tunnel-invite"
+	defer os.Remove(tmpfile)
+
+	os.WriteFile(tmpfile, []byte("file-token"), 0644)
+
+	app := &App{ctx: context.Background()}
+	token, err := app.ImportFromFile(tmpfile)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if token != "file-token" {
+		t.Fatalf("Expected 'file-token', got '%s'", token)
+	}
+}

@@ -268,3 +268,11 @@ func (a *App) handleJoinerConnection(conn net.Conn, dc *webrtc.DataChannel) {
 func (a *App) ExportToFile(token string, filepath string) error {
 	return os.WriteFile(filepath, []byte(token), 0644)
 }
+
+func (a *App) ImportFromFile(filepath string) (string, error) {
+	content, err := os.ReadFile(filepath)
+	if err != nil {
+		return "", fmt.Errorf("cannot read file: %w", err)
+	}
+	return string(content), nil
+}
