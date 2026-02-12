@@ -8,6 +8,7 @@ import {
   ExportToFile,
   ImportFromFile,
 } from "../../wailsjs/go/main/App";
+import { useToastStore } from "./toastStore";
 
 type TunnelStatus = "disconnected" | "connecting" | "connected" | "error" | "waiting-for-answer" | "waiting-for-host";
 
@@ -52,6 +53,11 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
     } catch (err: any) {
       set({ status: "error" });
       get().addLog(`Error: ${err.message || err}`);
+      useToastStore.getState().addToast({
+        title: "Failed to generate offer",
+        description: err.message || "An unknown error occurred",
+        variant: "destructive",
+      });
     }
   },
 
@@ -64,6 +70,11 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
     } catch (err: any) {
       set({ status: "error" });
       get().addLog(`Error: ${err.message || err}`);
+      useToastStore.getState().addToast({
+        title: "Failed to accept offer",
+        description: err.message || "An unknown error occurred",
+        variant: "destructive",
+      });
     }
   },
 
@@ -75,6 +86,11 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
     } catch (err: any) {
       set({ status: "error" });
       get().addLog(`Error: ${err.message || err}`);
+      useToastStore.getState().addToast({
+        title: "Failed to accept answer",
+        description: err.message || "An unknown error occurred",
+        variant: "destructive",
+      });
     }
   },
 
@@ -87,6 +103,11 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
       }
     } catch (err: any) {
       get().addLog(`Error exporting: ${err.message || err}`);
+      useToastStore.getState().addToast({
+        title: "Failed to export token",
+        description: err.message || "An unknown error occurred",
+        variant: "destructive",
+      });
     }
   },
 
@@ -100,6 +121,11 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
       }
     } catch (err: any) {
       get().addLog(`Error importing: ${err.message || err}`);
+      useToastStore.getState().addToast({
+        title: "Failed to import token",
+        description: err.message || "An unknown error occurred",
+        variant: "destructive",
+      });
     }
   },
 

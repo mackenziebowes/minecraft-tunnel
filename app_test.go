@@ -86,6 +86,103 @@ func TestAcceptAnswerSetsRemoteDescription(t *testing.T) {
 	}
 }
 
+func TestCreateOfferClosesPeerConnectionOnError(t *testing.T) {
+	initialFiles, err := os.ReadDir("/proc/self/fd")
+	if err != nil {
+		t.Skip("Cannot monitor file descriptors on this system")
+	}
+	initialCount := len(initialFiles)
+
+	app := &App{ctx: testContext()}
+
+	for i := 0; i < 5; i++ {
+		offer, err := app.CreateOffer()
+		if err != nil {
+			t.Fatalf("CreateOffer failed on iteration %d: %v", i, err)
+		}
+		if offer == "" {
+			t.Fatal("Expected non-empty offer")
+		}
+		app.shutdown(context.Background())
+		app.peerConnection = nil
+	}
+
+	finalFiles, err := os.ReadDir("/proc/self/fd")
+	if err != nil {
+		t.Skip("Cannot monitor file descriptors on this system")
+	}
+	finalCount := len(finalFiles)
+
+	if finalCount-initialCount > 10 {
+		t.Errorf("Potential file descriptor leak: grew from %d to %d", initialCount, finalCount)
+	}
+}
+
+func TestCreateOfferWithoutShutdownLeaksConnection(t *testing.T) {
+	app := &App{ctx: testContext()}
+
+	offer, err := app.CreateOffer()
+	if err != nil {
+		t.Fatalf("CreateOffer failed: %v", err)
+	}
+	if offer == "" {
+		t.Fatal("Expected non-empty offer")
+	}
+
+	if app.peerConnection == nil {
+		t.Fatal("Expected peerConnection to be set")
+	}
+
+	connectionState := app.peerConnection.ConnectionState()
+	if connectionState == webrtc.PeerConnectionStateClosed {
+		t.Error("Connection should be open after CreateOffer returns")
+	}
+
+	app.shutdown(context.Background())
+}
+
+func TestCreateOfferHandlesCreateOfferError(t *testing.T) {
+	app := &App{ctx: testContext()}
+
+	offer, err := app.CreateOffer()
+	if err != nil {
+		t.Fatalf("CreateOffer should succeed: %v", err)
+	}
+	if offer == "" {
+		t.Fatal("Expected non-empty offer")
+	}
+
+	if app.peerConnection == nil {
+		t.Fatal("Expected peerConnection to be set")
+	}
+
+	app.shutdown(context.Background())
+}
+
+func TestAcceptOfferHandlesSetRemoteDescriptionError(t *testing.T) {
+	hostApp := &App{ctx: testContext()}
+
+	offerToken, err := hostApp.CreateOffer()
+	if err != nil {
+		t.Fatalf("Failed to create offer: %v", err)
+	}
+
+	joinerApp := &App{ctx: testContext()}
+	answerToken, err := joinerApp.AcceptOffer(offerToken)
+	if err != nil {
+		t.Fatalf("AcceptOffer failed: %v", err)
+	}
+	if answerToken == "" {
+		t.Fatal("Expected non-empty answer token")
+	}
+
+	if joinerApp.peerConnection == nil {
+		t.Fatal("Expected peerConnection to be set")
+	}
+
+	joinerApp.shutdown(context.Background())
+}
+
 func TestTunnelProxyConnectsToMinecraftServer(t *testing.T) {
 	app := &App{ctx: testContext()}
 	dc := &webrtc.DataChannel{}

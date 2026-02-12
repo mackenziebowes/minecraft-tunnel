@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/pion/webrtc/v3"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -23,6 +24,7 @@ type Signal struct {
 
 type App struct {
 	ctx            context.Context
+	cancel         context.CancelFunc
 	peerConnection *webrtc.PeerConnection
 }
 
@@ -54,7 +56,17 @@ func NewApp() *App {
 }
 
 func (a *App) startup(ctx context.Context) {
-	a.ctx = ctx
+	a.ctx, a.cancel = context.WithCancel(ctx)
+}
+
+func (a *App) shutdown(ctx context.Context) {
+	if a.cancel != nil {
+		a.cancel()
+	}
+	if a.peerConnection != nil {
+		a.peerConnection.Close()
+		a.peerConnection = nil
+	}
 }
 
 // 1. HOST: Generates the Offer Token
@@ -71,6 +83,14 @@ func (a *App) CreateOffer() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	var cleanupNeeded = true
+	defer func() {
+		if cleanupNeeded && peerConnection != nil {
+			peerConnection.Close()
+		}
+	}()
+
 	a.peerConnection = peerConnection
 
 	// Create the Data Channel (This is our "Tunnel Cable")
@@ -106,10 +126,22 @@ func (a *App) CreateOffer() (string, error) {
 	}
 
 	// Wait for ICE Gathering to complete (to get all possible IP paths)
-	<-webrtc.GatheringCompletePromise(peerConnection)
+	gatheringDone := webrtc.GatheringCompletePromise(peerConnection)
+	select {
+	case <-gatheringDone:
+	case <-time.After(TimeoutWebRTCICE):
+		cleanupNeeded = false
+		peerConnection.Close()
+		return "", fmt.Errorf("ICE gathering timeout: failed to gather candidates after %v", TimeoutWebRTCICE)
+	}
 
 	// Encode the offer to base64 so it's easy to copy-paste
-	offerJson, _ := json.Marshal(peerConnection.LocalDescription())
+	offerJson, err := json.Marshal(peerConnection.LocalDescription())
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal offer: %w", err)
+	}
+
+	cleanupNeeded = false
 	return base64.StdEncoding.EncodeToString(offerJson), nil
 }
 
@@ -155,6 +187,15 @@ func (a *App) AcceptOffer(offerToken string) (string, error) {
 		return "", err
 	}
 
+	var cleanupNeeded = true
+	defer func() {
+		if cleanupNeeded && peerConnection != nil {
+			peerConnection.Close()
+		}
+	}()
+
+	a.peerConnection = peerConnection
+
 	if err := peerConnection.SetRemoteDescription(offer); err != nil {
 		return "", err
 	}
@@ -168,18 +209,32 @@ func (a *App) AcceptOffer(offerToken string) (string, error) {
 		return "", err
 	}
 
-	<-webrtc.GatheringCompletePromise(peerConnection)
+	// Wait for ICE Gathering to complete
+	gatheringDone := webrtc.GatheringCompletePromise(peerConnection)
+	select {
+	case <-gatheringDone:
+	case <-time.After(TimeoutWebRTCICE):
+		peerConnection.Close()
+		return "", fmt.Errorf("ICE gathering timeout: failed to gather candidates after %v", TimeoutWebRTCICE)
+	}
 
-	answerJson, _ := json.Marshal(peerConnection.LocalDescription())
+	answerJson, err := json.Marshal(peerConnection.LocalDescription())
+	if err != nil {
+		cleanupNeeded = false
+		peerConnection.Close()
+		return "", fmt.Errorf("failed to marshal answer: %w", err)
+	}
+
+	cleanupNeeded = false
 	return base64.StdEncoding.EncodeToString(answerJson), nil
 }
 
 // Helper: Connects DataChannel <-> Local Minecraft
 func (a *App) pumpMinecraftToChannel(dc *webrtc.DataChannel) {
 	// Connect to local Minecraft Server
-	mcConn, err := net.Dial("tcp", "localhost:25565")
+	mcConn, err := DialTimeout("tcp", "localhost:25565", TimeoutTCPConnect)
 	if err != nil {
-		a.safeEventEmit("log", "Error: Minecraft Server not running on 25565!")
+		a.safeEventEmit("log", fmt.Sprintf("Error connecting to Minecraft server: %v", err))
 		return
 	}
 	defer mcConn.Close()
@@ -207,7 +262,7 @@ func (a *App) pumpMinecraftToChannel(dc *webrtc.DataChannel) {
 }
 
 func (a *App) StartHostProxy(dc *webrtc.DataChannel, targetAddress string) error {
-	mcConn, err := net.Dial("tcp", targetAddress)
+	mcConn, err := DialTimeout("tcp", targetAddress, TimeoutTCPConnect)
 	if err != nil {
 		a.safeEventEmit("log", fmt.Sprintf("Error connecting to Minecraft server: %v", err))
 		return fmt.Errorf("cannot connect to Minecraft server: %w", err)
@@ -235,9 +290,9 @@ func (a *App) StartHostProxy(dc *webrtc.DataChannel, targetAddress string) error
 }
 
 func (a *App) StartJoinerProxy(dc *webrtc.DataChannel, port string) error {
-	listener, err := net.Listen("tcp", ":"+port)
+	listener, err := ListenTimeout("tcp", ":"+port, TimeoutNetwork)
 	if err != nil {
-		return fmt.Errorf("port %s already in use: %w", port, err)
+		return fmt.Errorf("failed to listen on port %s: %w", port, err)
 	}
 
 	go func() {
@@ -284,13 +339,40 @@ func (a *App) handleJoinerConnection(conn net.Conn, dc *webrtc.DataChannel) {
 }
 
 func (a *App) ExportToFile(token string, filepath string) error {
-	return os.WriteFile(filepath, []byte(token), 0644)
+	resultChan := make(chan error, 1)
+	go func() {
+		resultChan <- os.WriteFile(filepath, []byte(token), 0644)
+	}()
+
+	select {
+	case err := <-resultChan:
+		return err
+	case <-time.After(TimeoutFileIO):
+		return fmt.Errorf("file write timeout: failed to write to %s after %v", filepath, TimeoutFileIO)
+	}
 }
 
 func (a *App) ImportFromFile(filepath string) (string, error) {
-	content, err := os.ReadFile(filepath)
-	if err != nil {
-		return "", fmt.Errorf("cannot read file: %w", err)
+	resultChan := make(chan struct {
+		content string
+		err     error
+	}, 1)
+
+	go func() {
+		content, err := os.ReadFile(filepath)
+		resultChan <- struct {
+			content string
+			err     error
+		}{string(content), err}
+	}()
+
+	select {
+	case result := <-resultChan:
+		if result.err != nil {
+			return "", fmt.Errorf("cannot read file: %w", result.err)
+		}
+		return result.content, nil
+	case <-time.After(TimeoutFileIO):
+		return "", fmt.Errorf("file read timeout: failed to read from %s after %v", filepath, TimeoutFileIO)
 	}
-	return string(content), nil
 }
