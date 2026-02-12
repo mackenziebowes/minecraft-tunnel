@@ -12,6 +12,10 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+type contextKey string
+
+const testModeKey contextKey = "testMode"
+
 // We exchange these JSON blobs to connect
 type Signal struct {
 	SDP string `json:"sdp"`
@@ -29,6 +33,20 @@ type PeerConnectionManager struct {
 
 func NewPeerConnectionManager() *PeerConnectionManager {
 	return &PeerConnectionManager{}
+}
+
+func (a *App) safeEventEmit(event string, data ...interface{}) {
+	if a.ctx == nil {
+		return
+	}
+	if mode, ok := a.ctx.Value(testModeKey).(bool); ok && mode {
+		return
+	}
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
+	runtime.EventsEmit(a.ctx, event, data...)
 }
 
 func NewApp() *App {
@@ -63,8 +81,8 @@ func (a *App) CreateOffer() (string, error) {
 
 	// HANDLE OPEN: When the tunnel connects, start forwarding Minecraft
 	dataChannel.OnOpen(func() {
-		runtime.EventsEmit(a.ctx, "status-change", "connected")
-		runtime.EventsEmit(a.ctx, "log", "P2P Tunnel Established! 🚀")
+		a.safeEventEmit("status-change", "connected")
+		a.safeEventEmit("log", "P2P Tunnel Established! 🚀")
 
 		// Start talking to local Minecraft (Port 25565)
 		go a.pumpMinecraftToChannel(dataChannel)
@@ -161,7 +179,7 @@ func (a *App) pumpMinecraftToChannel(dc *webrtc.DataChannel) {
 	// Connect to local Minecraft Server
 	mcConn, err := net.Dial("tcp", "localhost:25565")
 	if err != nil {
-		runtime.EventsEmit(a.ctx, "log", "Error: Minecraft Server not running on 25565!")
+		a.safeEventEmit("log", "Error: Minecraft Server not running on 25565!")
 		return
 	}
 	defer mcConn.Close()
@@ -191,7 +209,7 @@ func (a *App) pumpMinecraftToChannel(dc *webrtc.DataChannel) {
 func (a *App) StartHostProxy(dc *webrtc.DataChannel, targetAddress string) error {
 	mcConn, err := net.Dial("tcp", targetAddress)
 	if err != nil {
-		runtime.EventsEmit(a.ctx, "log", fmt.Sprintf("Error connecting to Minecraft server: %v", err))
+		a.safeEventEmit("log", fmt.Sprintf("Error connecting to Minecraft server: %v", err))
 		return fmt.Errorf("cannot connect to Minecraft server: %w", err)
 	}
 	defer mcConn.Close()
@@ -227,7 +245,7 @@ func (a *App) StartJoinerProxy(dc *webrtc.DataChannel, port string) error {
 			if r := recover(); r != nil {
 			}
 		}()
-		runtime.EventsEmit(a.ctx, "log", fmt.Sprintf("Listening on port %s for Minecraft client", port))
+		a.safeEventEmit("log", fmt.Sprintf("Listening on port %s for Minecraft client", port))
 	}()
 
 	go func() {

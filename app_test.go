@@ -9,6 +9,11 @@ import (
 	"github.com/pion/webrtc/v3"
 )
 
+func testContext() context.Context {
+	ctx := context.Background()
+	return context.WithValue(ctx, testModeKey, true)
+}
+
 func TestNewPeerConnectionManager(t *testing.T) {
 	manager := NewPeerConnectionManager()
 	if manager == nil {
@@ -17,7 +22,7 @@ func TestNewPeerConnectionManager(t *testing.T) {
 }
 
 func TestCreateOfferGeneratesValidBase64(t *testing.T) {
-	app := &App{ctx: context.Background()}
+	app := &App{ctx: testContext()}
 	token, err := app.CreateOffer()
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -33,7 +38,7 @@ func TestCreateOfferGeneratesValidBase64(t *testing.T) {
 }
 
 func TestAcceptOfferGeneratesAnswer(t *testing.T) {
-	hostApp := &App{ctx: context.Background()}
+	hostApp := &App{ctx: testContext()}
 
 	// Create a real offer token
 	offerToken, err := hostApp.CreateOffer()
@@ -42,7 +47,7 @@ func TestAcceptOfferGeneratesAnswer(t *testing.T) {
 	}
 
 	// Joiner accepts the offer and generates answer
-	joinerApp := &App{ctx: context.Background()}
+	joinerApp := &App{ctx: testContext()}
 	answerToken, err := joinerApp.AcceptOffer(offerToken)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -59,7 +64,7 @@ func TestAcceptOfferGeneratesAnswer(t *testing.T) {
 }
 
 func TestAcceptAnswerSetsRemoteDescription(t *testing.T) {
-	hostApp := &App{ctx: context.Background()}
+	hostApp := &App{ctx: testContext()}
 
 	// Create offer
 	offerToken, err := hostApp.CreateOffer()
@@ -68,7 +73,7 @@ func TestAcceptAnswerSetsRemoteDescription(t *testing.T) {
 	}
 
 	// Generate real answer
-	joinerApp := &App{ctx: context.Background()}
+	joinerApp := &App{ctx: testContext()}
 	answerToken, err := joinerApp.AcceptOffer(offerToken)
 	if err != nil {
 		t.Fatalf("Failed to generate answer: %v", err)
@@ -82,7 +87,7 @@ func TestAcceptAnswerSetsRemoteDescription(t *testing.T) {
 }
 
 func TestTunnelProxyConnectsToMinecraftServer(t *testing.T) {
-	app := &App{ctx: context.Background()}
+	app := &App{ctx: testContext()}
 	dc := &webrtc.DataChannel{}
 
 	_ = app
@@ -90,7 +95,7 @@ func TestTunnelProxyConnectsToMinecraftServer(t *testing.T) {
 }
 
 func TestStartJoinerProxyListensOnPort25565(t *testing.T) {
-	app := &App{ctx: context.Background()}
+	app := &App{ctx: testContext()}
 	dc := &webrtc.DataChannel{}
 
 	err := app.StartJoinerProxy(dc, "0")
@@ -103,7 +108,7 @@ func TestExportToFileWritesToken(t *testing.T) {
 	tmpfile := "/tmp/test-invite.mc-tunnel-invite"
 	defer os.Remove(tmpfile)
 
-	app := &App{ctx: context.Background()}
+	app := &App{ctx: testContext()}
 	err := app.ExportToFile("test-token", tmpfile)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
@@ -125,7 +130,7 @@ func TestImportFromFileReadsToken(t *testing.T) {
 
 	os.WriteFile(tmpfile, []byte("file-token"), 0644)
 
-	app := &App{ctx: context.Background()}
+	app := &App{ctx: testContext()}
 	token, err := app.ImportFromFile(tmpfile)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
