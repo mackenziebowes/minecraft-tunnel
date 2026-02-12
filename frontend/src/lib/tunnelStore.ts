@@ -1,43 +1,109 @@
 import { create } from "zustand";
-import { StartTunnel, StopTunnel } from "../../wailsjs/go/main/App"; // Adjust path as needed
+import {
+  CreateOffer,
+  AcceptOffer,
+  AcceptAnswer,
+  StartHostProxy,
+  StartJoinerProxy,
+  ExportToFile,
+  ImportFromFile,
+} from "../../wailsjs/go/main/App";
 
-type TunnelStatus = "disconnected" | "connecting" | "connected" | "error";
+type TunnelStatus = "disconnected" | "connecting" | "connected" | "error" | "waiting-for-answer" | "waiting-for-host";
 
 interface TunnelState {
+  // State
   status: TunnelStatus;
   logs: string[];
-  ip: string;
-  setIp: (ip: string) => void;
-  port: string;
-  setPort: (port: string) => void;
+  offerToken: string;
+  answerToken: string;
+  mcServerAddress: string;
+  proxyPort: string;
+
+  // Actions
+  setMcServerAddress: (address: string) => void;
+  setProxyPort: (port: string) => void;
+  generateOffer: () => Promise<void>;
+  acceptOffer: (offer: string) => Promise<void>;
+  acceptAnswer: (answer: string) => Promise<void>;
+  exportToken: (token: string) => Promise<void>;
+  importToken: () => Promise<string | undefined>;
   addLog: (message: string) => void;
   setStatus: (status: TunnelStatus) => void;
-  startHost: () => Promise<void>;
-  stopHost: () => Promise<void>;
 }
 
 export const useTunnelStore = create<TunnelState>((set, get) => ({
   status: "disconnected",
   logs: [],
-  ip: "localhost", // Default or saved pref
-  setIp: (ip) => set({ ip }),
-  port: "25345",
-  setPort: (port) => set({ port }),
-  addLog: (message) => set((state) => ({ logs: [...state.logs, message] })),
-  setStatus: (status) => set({ status }),
-  startHost: async () => {
-    const { ip, port } = get();
-    set({ status: "connecting", logs: [] }); // Clear logs on new run?
+  offerToken: "",
+  answerToken: "",
+  mcServerAddress: "localhost:25565",
+  proxyPort: "25565",
+
+  setMcServerAddress: (address) => set({ mcServerAddress: address }),
+  setProxyPort: (port) => set({ proxyPort: port }),
+
+  generateOffer: async () => {
+    set({ status: "connecting", logs: [], offerToken: "" });
     try {
-      // Calls the Go backend
-      await StartTunnel(ip, "25565");
+      const token = await CreateOffer();
+      set({ status: "waiting-for-answer", offerToken: token });
+      get().addLog("Offer token generated successfully");
     } catch (err: any) {
       set({ status: "error" });
       get().addLog(`Error: ${err.message || err}`);
     }
   },
-  stopHost: async () => {
-    await StopTunnel();
-    set({ status: "disconnected" });
+
+  acceptOffer: async (offer) => {
+    set({ status: "connecting", logs: [] });
+    try {
+      const answer = await AcceptOffer(offer);
+      set({ status: "waiting-for-host", answerToken: answer });
+      get().addLog("Answer generated - share this with host");
+    } catch (err: any) {
+      set({ status: "error" });
+      get().addLog(`Error: ${err.message || err}`);
+    }
   },
+
+  acceptAnswer: async (answer) => {
+    try {
+      await AcceptAnswer(answer);
+      set({ status: "connected" });
+      get().addLog("Tunnel established!");
+    } catch (err: any) {
+      set({ status: "error" });
+      get().addLog(`Error: ${err.message || err}`);
+    }
+  },
+
+  exportToken: async (token) => {
+    try {
+      const path = await (window as any).runtime.SaveFileDialog();
+      if (path) {
+        await ExportToFile(token, path);
+        get().addLog(`Token exported to ${path}`);
+      }
+    } catch (err: any) {
+      get().addLog(`Error exporting: ${err.message || err}`);
+    }
+  },
+
+  importToken: async () => {
+    try {
+      const path = await (window as any).runtime.OpenFileDialog();
+      if (path) {
+        const token = await ImportFromFile(path);
+        get().addLog(`Token imported from ${path}`);
+        return token;
+      }
+    } catch (err: any) {
+      get().addLog(`Error importing: ${err.message || err}`);
+    }
+  },
+
+  addLog: (message) =>
+    set((state) => ({ logs: [...state.logs, message] })),
+  setStatus: (status) => set({ status }),
 }));
