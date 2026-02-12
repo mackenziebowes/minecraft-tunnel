@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net"
 
 	"github.com/pion/webrtc/v3"
@@ -105,6 +106,48 @@ func (a *App) SetAnswer(answerToken string) error {
 		return err
 	}
 	return nil
+}
+
+// 3. JOINER: Accepts the Offer Token and generates Answer Token
+func (a *App) AcceptOffer(offerToken string) (string, error) {
+	sdpBytes, err := base64.StdEncoding.DecodeString(offerToken)
+	if err != nil {
+		return "", fmt.Errorf("invalid token format: %w", err)
+	}
+
+	var offer webrtc.SessionDescription
+	if err := json.Unmarshal(sdpBytes, &offer); err != nil {
+		return "", fmt.Errorf("invalid session description: %w", err)
+	}
+
+	config := webrtc.Configuration{
+		ICEServers: []webrtc.ICEServer{
+			{URLs: []string{"stun:stun.l.google.com:19302"}},
+		},
+	}
+
+	peerConnection, err := webrtc.NewPeerConnection(config)
+	if err != nil {
+		return "", err
+	}
+
+	if err := peerConnection.SetRemoteDescription(offer); err != nil {
+		return "", err
+	}
+
+	answer, err := peerConnection.CreateAnswer(nil)
+	if err != nil {
+		return "", err
+	}
+
+	if err = peerConnection.SetLocalDescription(answer); err != nil {
+		return "", err
+	}
+
+	<-webrtc.GatheringCompletePromise(peerConnection)
+
+	answerJson, _ := json.Marshal(peerConnection.LocalDescription())
+	return base64.StdEncoding.EncodeToString(answerJson), nil
 }
 
 // Helper: Connects DataChannel <-> Local Minecraft
