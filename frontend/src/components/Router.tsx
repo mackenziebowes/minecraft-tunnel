@@ -1,6 +1,7 @@
 import { useAppStore, type ValidRoutes } from "@/lib/store";
 import Main from "@/routes/main";
 import { HostView } from "@/routes/host";
+import { JoinView } from "@/routes/join";
 
 export function Router() {
   const route = useAppStore((s) => s.route);
@@ -18,6 +19,6 @@ export function Router() {
         </>
       );
     case "/join":
-      return <></>;
+      return <JoinView />;
   }
 }
