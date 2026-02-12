@@ -87,3 +87,13 @@ func TestTunnelProxyConnectsToMinecraftServer(t *testing.T) {
 	_ = app
 	_ = dc
 }
+
+func TestStartJoinerProxyListensOnPort25565(t *testing.T) {
+	app := &App{ctx: context.Background()}
+	dc := &webrtc.DataChannel{}
+
+	err := app.StartJoinerProxy(dc, "0")
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+}

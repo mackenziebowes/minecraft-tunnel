@@ -214,3 +214,52 @@ func (a *App) StartHostProxy(dc *webrtc.DataChannel, targetAddress string) error
 
 	return nil
 }
+
+func (a *App) StartJoinerProxy(dc *webrtc.DataChannel, port string) error {
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		return fmt.Errorf("port %s already in use: %w", port, err)
+	}
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+			}
+		}()
+		runtime.EventsEmit(a.ctx, "log", fmt.Sprintf("Listening on port %s for Minecraft client", port))
+	}()
+
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+
+			go a.handleJoinerConnection(conn, dc)
+		}
+	}()
+
+	return nil
+}
+
+func (a *App) handleJoinerConnection(conn net.Conn, dc *webrtc.DataChannel) {
+	defer conn.Close()
+
+	// Minecraft Client -> WebRTC
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := conn.Read(buf)
+			if err != nil {
+				return
+			}
+			dc.Send(buf[:n])
+		}
+	}()
+
+	// WebRTC -> Minecraft Client
+	dc.OnMessage(func(msg webrtc.DataChannelMessage) {
+		conn.Write(msg.Data)
+	})
+}
