@@ -1,5 +1,12 @@
 import { beforeAll, vi } from "vitest";
 
+declare global {
+  interface Window {
+    runtime?: any;
+    go?: any;
+  }
+}
+
 beforeAll(() => {
   // Mock Wails runtime
   global.window = global.window || {};

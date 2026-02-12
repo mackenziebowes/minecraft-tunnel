@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useTunnelStore } from "@/lib/tunnelStore";
-import { EventsOn, EventsOff, SaveFileDialog } from "../../../wailsjs/runtime/runtime";
+import { EventsOn, EventsOff } from "../../../wailsjs/runtime/runtime";
 import { TokenCard } from "@/components/custom/token-card";
 import Sigil from "@/components/custom/sigil";
 
@@ -56,6 +56,7 @@ export const HostView = () => {
       disconnected: "border-slate-200",
       connecting: "border-yellow-200 animate-pulse",
       "waiting-for-answer": "border-blue-200",
+      "waiting-for-host": "border-blue-200",
       connected: "border-green-200",
       error: "border-red-200",
     }[status] || "";

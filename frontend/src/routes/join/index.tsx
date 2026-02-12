@@ -74,6 +74,7 @@ export const JoinView = () => {
     {
       disconnected: "border-slate-200",
       connecting: "border-yellow-200 animate-pulse",
+      "waiting-for-answer": "border-blue-200",
       "waiting-for-host": "border-blue-200",
       connected: "border-green-200",
       error: "border-red-200",
