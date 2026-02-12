@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"os"
 	"testing"
 
 	"github.com/pion/webrtc/v3"
@@ -95,5 +96,25 @@ func TestStartJoinerProxyListensOnPort25565(t *testing.T) {
 	err := app.StartJoinerProxy(dc, "0")
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
+	}
+}
+
+func TestExportToFileWritesToken(t *testing.T) {
+	tmpfile := "/tmp/test-invite.mc-tunnel-invite"
+	defer os.Remove(tmpfile)
+
+	app := &App{ctx: context.Background()}
+	err := app.ExportToFile("test-token", tmpfile)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	content, err := os.ReadFile(tmpfile)
+	if err != nil {
+		t.Fatalf("Expected file to exist, got: %v", err)
+	}
+
+	if string(content) != "test-token" {
+		t.Fatalf("Expected 'test-token', got '%s'", string(content))
 	}
 }

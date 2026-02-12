@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 
 	"github.com/pion/webrtc/v3"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -262,4 +263,8 @@ func (a *App) handleJoinerConnection(conn net.Conn, dc *webrtc.DataChannel) {
 	dc.OnMessage(func(msg webrtc.DataChannelMessage) {
 		conn.Write(msg.Data)
 	})
+}
+
+func (a *App) ExportToFile(token string, filepath string) error {
+	return os.WriteFile(filepath, []byte(token), 0644)
 }
