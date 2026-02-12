@@ -20,6 +20,15 @@ type App struct {
 	peerConnection *webrtc.PeerConnection
 }
 
+type PeerConnectionManager struct {
+	peerConnection *webrtc.PeerConnection
+	dataChannel    *webrtc.DataChannel
+}
+
+func NewPeerConnectionManager() *PeerConnectionManager {
+	return &PeerConnectionManager{}
+}
+
 func NewApp() *App {
 	return &App{}
 }
