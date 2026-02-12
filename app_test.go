@@ -54,3 +54,26 @@ func TestAcceptOfferGeneratesAnswer(t *testing.T) {
 		t.Fatalf("Expected valid base64 answer, got: %v", err)
 	}
 }
+
+func TestAcceptAnswerSetsRemoteDescription(t *testing.T) {
+	hostApp := &App{ctx: context.Background()}
+
+	// Create offer
+	offerToken, err := hostApp.CreateOffer()
+	if err != nil {
+		t.Fatalf("Failed to create offer: %v", err)
+	}
+
+	// Generate real answer
+	joinerApp := &App{ctx: context.Background()}
+	answerToken, err := joinerApp.AcceptOffer(offerToken)
+	if err != nil {
+		t.Fatalf("Failed to generate answer: %v", err)
+	}
+
+	// Host accepts the answer
+	err = hostApp.AcceptAnswer(answerToken)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+}

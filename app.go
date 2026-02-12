@@ -95,16 +95,21 @@ func (a *App) CreateOffer() (string, error) {
 }
 
 // 2. HOST: Accepts the Answer Token from the Friend
-func (a *App) SetAnswer(answerToken string) error {
-	// Decode the answer
-	sdpBytes, _ := base64.StdEncoding.DecodeString(answerToken)
-	var answer webrtc.SessionDescription
-	json.Unmarshal(sdpBytes, &answer)
-
-	// Set the Remote Description (This completes the handshake)
-	if err := a.peerConnection.SetRemoteDescription(answer); err != nil {
-		return err
+func (a *App) AcceptAnswer(answerToken string) error {
+	sdpBytes, err := base64.StdEncoding.DecodeString(answerToken)
+	if err != nil {
+		return fmt.Errorf("invalid answer token format: %w", err)
 	}
+
+	var answer webrtc.SessionDescription
+	if err := json.Unmarshal(sdpBytes, &answer); err != nil {
+		return fmt.Errorf("invalid answer session description: %w", err)
+	}
+
+	if err := a.peerConnection.SetRemoteDescription(answer); err != nil {
+		return fmt.Errorf("failed to set remote description: %w", err)
+	}
+
 	return nil
 }
 
