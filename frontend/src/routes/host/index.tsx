@@ -24,6 +24,7 @@ export const HostView = () => {
   const {
     status,
     logs,
+    offerToken,
     mcServerAddress,
     setMcServerAddress,
     addLog,
@@ -109,9 +110,9 @@ export const HostView = () => {
                 Share this Offer Token with your friend:
               </Label>
               <TokenCard
-                token={useTunnelStore((s) => s.offerToken)}
+                token={offerToken}
                 type="offer"
-                onExport={() => exportToken(useTunnelStore((s) => s.offerToken))}
+                onExport={() => exportToken(offerToken)}
               />
             </div>
           )}

@@ -45,12 +45,20 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
   setProxyPort: (port) => set({ proxyPort: port }),
 
   generateOffer: async () => {
+    console.log("[FRONTEND] generateOffer called");
     set({ status: "connecting", logs: [], offerToken: "" });
     try {
+      console.log("[FRONTEND] Calling CreateOffer()...");
       const token = await CreateOffer();
+      console.log("[FRONTEND] CreateOffer returned, token length:", token?.length);
+      console.log("[FRONTEND] Token preview:", token?.substring(0, 50) + "...");
       set({ status: "waiting-for-answer", offerToken: token });
       get().addLog("Offer token generated successfully");
+      console.log("[FRONTEND] State updated to waiting-for-answer");
     } catch (err: any) {
+      console.error("[FRONTEND] CreateOffer error:", err);
+      console.error("[FRONTEND] Error message:", err?.message);
+      console.error("[FRONTEND] Error stack:", err?.stack);
       set({ status: "error" });
       get().addLog(`Error: ${err.message || err}`);
       useToastStore.getState().addToast({
@@ -62,12 +70,16 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
   },
 
   acceptOffer: async (offer) => {
+    console.log("[FRONTEND] acceptOffer called, offer length:", offer?.length);
     set({ status: "connecting", logs: [] });
     try {
+      console.log("[FRONTEND] Calling AcceptOffer()...");
       const answer = await AcceptOffer(offer);
+      console.log("[FRONTEND] AcceptOffer returned, answer length:", answer?.length);
       set({ status: "waiting-for-host", answerToken: answer });
       get().addLog("Answer generated - share this with host");
     } catch (err: any) {
+      console.error("[FRONTEND] AcceptOffer error:", err);
       set({ status: "error" });
       get().addLog(`Error: ${err.message || err}`);
       useToastStore.getState().addToast({
@@ -79,11 +91,15 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
   },
 
   acceptAnswer: async (answer) => {
+    console.log("[FRONTEND] acceptAnswer called, answer length:", answer?.length);
     try {
+      console.log("[FRONTEND] Calling AcceptAnswer()...");
       await AcceptAnswer(answer);
+      console.log("[FRONTEND] AcceptAnswer returned successfully");
       set({ status: "connected" });
       get().addLog("Tunnel established!");
     } catch (err: any) {
+      console.error("[FRONTEND] AcceptAnswer error:", err);
       set({ status: "error" });
       get().addLog(`Error: ${err.message || err}`);
       useToastStore.getState().addToast({

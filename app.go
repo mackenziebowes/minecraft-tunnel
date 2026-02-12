@@ -11,6 +11,7 @@ import (
 
 	"github.com/pion/webrtc/v3"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"runtime/debug"
 )
 
 type contextKey string
@@ -38,17 +39,25 @@ func NewPeerConnectionManager() *PeerConnectionManager {
 }
 
 func (a *App) safeEventEmit(event string, data ...interface{}) {
+	fmt.Printf("[DEBUG] safeEventEmit: event='%s', ctx=%v, testMode=%v\n",
+		event, a.ctx != nil, a.ctx != nil && a.ctx.Value(testModeKey) == true)
 	if a.ctx == nil {
+		fmt.Fprintf(os.Stderr, "[WARN] safeEventEmit: ctx is nil, skipping event '%s'\n", event)
 		return
 	}
 	if mode, ok := a.ctx.Value(testModeKey).(bool); ok && mode {
+		fmt.Printf("[DEBUG] safeEventEmit: test mode, skipping event '%s'\n", event)
 		return
 	}
 	defer func() {
 		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "[PANIC] safeEventEmit recovered: %v\n", r)
+			debug.PrintStack()
 		}
 	}()
+	fmt.Printf("[DEBUG] safeEventEmit: emitting event '%s' to Wails runtime\n", event)
 	runtime.EventsEmit(a.ctx, event, data...)
+	fmt.Printf("[DEBUG] safeEventEmit: event '%s' emitted successfully\n", event)
 }
 
 func NewApp() *App {
@@ -69,16 +78,20 @@ func (a *App) shutdown(ctx context.Context) {
 	}
 }
 
-// 1. HOST: Generates the Offer Token
 func (a *App) CreateOffer() (string, error) {
-	// Standard public STUN servers (free, used for hole punching)
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "[PANIC] CreateOffer recovered: %v\n", r)
+			debug.PrintStack()
+		}
+	}()
+
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
 			{URLs: []string{"stun:stun.l.google.com:19302"}},
 		},
 	}
 
-	// Create a new PeerConnection
 	peerConnection, err := webrtc.NewPeerConnection(config)
 	if err != nil {
 		return "", err
@@ -93,39 +106,29 @@ func (a *App) CreateOffer() (string, error) {
 
 	a.peerConnection = peerConnection
 
-	// Create the Data Channel (This is our "Tunnel Cable")
 	dataChannel, err := peerConnection.CreateDataChannel("minecraft", nil)
 	if err != nil {
 		return "", err
 	}
 
-	// HANDLE OPEN: When the tunnel connects, start forwarding Minecraft
 	dataChannel.OnOpen(func() {
 		a.safeEventEmit("status-change", "connected")
 		a.safeEventEmit("log", "P2P Tunnel Established! 🚀")
-
-		// Start talking to local Minecraft (Port 25565)
 		go a.pumpMinecraftToChannel(dataChannel)
 	})
 
-	// HANDLE MESSAGES: When data comes FROM the friend
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
-		// In a real implementation, you'd write this to the local MC socket
-		// For simplicity, we assume the pump handles the bi-directional flow
 	})
 
-	// Create the Offer (The "Token")
 	offer, err := peerConnection.CreateOffer(nil)
 	if err != nil {
 		return "", err
 	}
 
-	// Sets the LocalDescription so we can start gathering candidates
 	if err = peerConnection.SetLocalDescription(offer); err != nil {
 		return "", err
 	}
 
-	// Wait for ICE Gathering to complete (to get all possible IP paths)
 	gatheringDone := webrtc.GatheringCompletePromise(peerConnection)
 	select {
 	case <-gatheringDone:
@@ -135,7 +138,6 @@ func (a *App) CreateOffer() (string, error) {
 		return "", fmt.Errorf("ICE gathering timeout: failed to gather candidates after %v", TimeoutWebRTCICE)
 	}
 
-	// Encode the offer to base64 so it's easy to copy-paste
 	offerJson, err := json.Marshal(peerConnection.LocalDescription())
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal offer: %w", err)
@@ -145,8 +147,14 @@ func (a *App) CreateOffer() (string, error) {
 	return base64.StdEncoding.EncodeToString(offerJson), nil
 }
 
-// 2. HOST: Accepts the Answer Token from the Friend
 func (a *App) AcceptAnswer(answerToken string) error {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "[PANIC] AcceptAnswer recovered: %v\n", r)
+			debug.PrintStack()
+		}
+	}()
+
 	sdpBytes, err := base64.StdEncoding.DecodeString(answerToken)
 	if err != nil {
 		return fmt.Errorf("invalid answer token format: %w", err)
@@ -164,8 +172,14 @@ func (a *App) AcceptAnswer(answerToken string) error {
 	return nil
 }
 
-// 3. JOINER: Accepts the Offer Token and generates Answer Token
 func (a *App) AcceptOffer(offerToken string) (string, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "[PANIC] AcceptOffer recovered: %v\n", r)
+			debug.PrintStack()
+		}
+	}()
+
 	sdpBytes, err := base64.StdEncoding.DecodeString(offerToken)
 	if err != nil {
 		return "", fmt.Errorf("invalid token format: %w", err)
@@ -209,7 +223,6 @@ func (a *App) AcceptOffer(offerToken string) (string, error) {
 		return "", err
 	}
 
-	// Wait for ICE Gathering to complete
 	gatheringDone := webrtc.GatheringCompletePromise(peerConnection)
 	select {
 	case <-gatheringDone:

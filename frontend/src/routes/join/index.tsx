@@ -25,6 +25,7 @@ export const JoinView = () => {
   const {
     status,
     logs,
+    answerToken,
     acceptOffer,
     addLog,
     setStatus,
@@ -144,7 +145,7 @@ export const JoinView = () => {
                 Share this Answer Token back to your friend:
               </Label>
               <TokenCard
-                token={useTunnelStore((s) => s.answerToken)}
+                token={answerToken}
                 type="answer"
               />
               <div className="text-sm text-slate-600 bg-yellow-50 border border-yellow-200 rounded p-3">
