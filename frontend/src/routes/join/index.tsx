@@ -1,11 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useAppStore } from "@/lib/store";
 import { useTunnelStore } from "@/lib/tunnelStore";
 import { EventsOn, EventsOff } from "../../../wailsjs/runtime/runtime";
-import { ImportFromFile } from "../../../wailsjs/go/main/App";
 import { TokenCard } from "@/components/custom/token-card";
 import Sigil from "@/components/custom/sigil";
 
-import { ArrowLeft, Activity, Terminal, FileUp, Link as LinkIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  Activity,
+  Terminal,
+  FileUp,
+  Link as LinkIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,16 +28,12 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const JoinView = () => {
-  const {
-    status,
-    logs,
-    answerToken,
-    acceptOffer,
-    addLog,
-    setStatus,
-  } = useTunnelStore();
+  const { setRoute } = useAppStore();
+  const { status, logs, answerToken, acceptOffer, addLog, setStatus, importToken, exportToken } =
+    useTunnelStore();
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [offerInput, setOfferInput] = useState("");
 
   useEffect(() => {
@@ -59,15 +61,18 @@ export const JoinView = () => {
   };
 
   const handleImportFile = async () => {
-    try {
-      const path = await (window as any).runtime.OpenFileDialog();
-      if (path) {
-        const token = await ImportFromFile(path);
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const token = await importToken(file);
+      if (token) {
         setOfferInput(token);
-        addLog(`Token imported from ${path}`);
       }
-    } catch (err: any) {
-      addLog(`Error importing: ${err.message || err}`);
     }
   };
 
@@ -124,6 +129,13 @@ export const JoinView = () => {
                 </Button>
               </div>
               <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".txt"
+                  onChange={handleFileSelected}
+                  className="hidden"
+                />
                 <Button variant="outline" size="sm" onClick={handleImportFile}>
                   <FileUp className="w-4 h-4 mr-2" />
                   Import File
@@ -144,12 +156,10 @@ export const JoinView = () => {
               <Label className="text-sm font-medium">
                 Share this Answer Token back to your friend:
               </Label>
-              <TokenCard
-                token={answerToken}
-                type="answer"
-              />
+              <TokenCard token={answerToken} type="answer" onExport={(token, type) => exportToken(token, type)} />
               <div className="text-sm text-slate-600 bg-yellow-50 border border-yellow-200 rounded p-3">
-                <strong>⚠️ Important:</strong> Copy and send this back to the host!
+                <strong>⚠️ Important:</strong> Copy and send this back to the
+                host!
               </div>
             </div>
           )}
@@ -192,7 +202,7 @@ export const JoinView = () => {
         <CardFooter className="flex justify-between pt-2 border-t border-slate-100">
           <Button
             variant="ghost"
-            onClick={() => window.history.back()}
+            onClick={() => setRoute("/")}
             disabled={status !== "disconnected"}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />

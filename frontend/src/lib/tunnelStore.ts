@@ -5,8 +5,6 @@ import {
   AcceptAnswer,
   StartHostProxy,
   StartJoinerProxy,
-  ExportToFile,
-  ImportFromFile,
 } from "../../wailsjs/go/main/App";
 import { useToastStore } from "./toastStore";
 
@@ -27,8 +25,8 @@ interface TunnelState {
   generateOffer: () => Promise<void>;
   acceptOffer: (offer: string) => Promise<void>;
   acceptAnswer: (answer: string) => Promise<void>;
-  exportToken: (token: string) => Promise<void>;
-  importToken: () => Promise<string | undefined>;
+  exportToken: (token: string, tokenType: 'offer' | 'answer') => Promise<void>;
+  importToken: (file: File) => Promise<string | undefined>;
   addLog: (message: string) => void;
   setStatus: (status: TunnelStatus) => void;
 }
@@ -110,13 +108,24 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
     }
   },
 
-  exportToken: async (token) => {
+  exportToken: async (token, tokenType) => {
     try {
-      const path = await (window as any).runtime.SaveFileDialog();
-      if (path) {
-        await ExportToFile(token, path);
-        get().addLog(`Token exported to ${path}`);
-      }
+      // Create a blob and download it as a file
+      const blob = new Blob([token], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `covenant-${tokenType}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      get().addLog(`Token exported to file`);
+      useToastStore.getState().addToast({
+        title: "Token exported successfully",
+        description: "Saved to your browser's Downloads folder",
+        variant: "default",
+      });
     } catch (err: any) {
       get().addLog(`Error exporting: ${err.message || err}`);
       useToastStore.getState().addToast({
@@ -127,14 +136,20 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
     }
   },
 
-  importToken: async () => {
+  importToken: async (file: File) => {
     try {
-      const path = await (window as any).runtime.OpenFileDialog();
-      if (path) {
-        const token = await ImportFromFile(path);
-        get().addLog(`Token imported from ${path}`);
-        return token;
+      if (!file) {
+        get().addLog(`No file selected for import`);
+        return undefined;
       }
+      const text = await file.text();
+      get().addLog(`Token imported from ${file.name}`);
+      useToastStore.getState().addToast({
+        title: "Token imported successfully",
+        description: `Loaded from ${file.name}`,
+        variant: "default",
+      });
+      return text;
     } catch (err: any) {
       get().addLog(`Error importing: ${err.message || err}`);
       useToastStore.getState().addToast({

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useTunnelStore } from "@/lib/tunnelStore";
+import { useAppStore } from "@/lib/store";
 import { EventsOn, EventsOff } from "../../../wailsjs/runtime/runtime";
 import { TokenCard } from "@/components/custom/token-card";
 import Sigil from "@/components/custom/sigil";
@@ -21,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const HostView = () => {
+  const { setRoute } = useAppStore();
   const {
     status,
     logs,
@@ -112,7 +114,7 @@ export const HostView = () => {
               <TokenCard
                 token={offerToken}
                 type="offer"
-                onExport={() => exportToken(offerToken)}
+                onExport={(token, type) => exportToken(token, type)}
               />
             </div>
           )}
@@ -129,10 +131,14 @@ export const HostView = () => {
                   className="font-mono text-xs flex-1"
                   id="answer-input"
                 />
-                <Button onClick={() => {
-                  const input = document.getElementById("answer-input") as HTMLInputElement;
-                  if (input.value) acceptAnswer(input.value);
-                }}>
+                <Button
+                  onClick={() => {
+                    const input = document.getElementById(
+                      "answer-input",
+                    ) as HTMLInputElement;
+                    if (input.value) acceptAnswer(input.value);
+                  }}
+                >
                   Connect
                 </Button>
               </div>
@@ -177,7 +183,7 @@ export const HostView = () => {
         <CardFooter className="flex justify-between pt-2 border-t border-slate-100">
           <Button
             variant="ghost"
-            onClick={() => window.history.back()}
+            onClick={() => setRoute("/")}
             disabled={status !== "disconnected"}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />

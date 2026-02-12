@@ -3,12 +3,11 @@ import { Copy, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useTunnelStore } from "@/lib/tunnelStore";
 
 interface TokenCardProps {
   token: string;
   type: "offer" | "answer";
-  onExport?: () => void;
+  onExport?: (token: string, type: "offer" | 'answer') => void;
 }
 
 export const TokenCard: React.FC<TokenCardProps> = ({ token, type, onExport }) => {
@@ -58,7 +57,7 @@ export const TokenCard: React.FC<TokenCardProps> = ({ token, type, onExport }) =
             <Button
               variant="outline"
               size="sm"
-              onClick={onExport}
+              onClick={() => onExport(token, type)}
               disabled={!token}
             >
               <Download className="w-4 h-4 mr-2" />
