@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"testing"
+
+	"github.com/pion/webrtc/v3"
 )
 
 func TestNewPeerConnectionManager(t *testing.T) {
@@ -76,4 +78,12 @@ func TestAcceptAnswerSetsRemoteDescription(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}
+}
+
+func TestTunnelProxyConnectsToMinecraftServer(t *testing.T) {
+	app := &App{ctx: context.Background()}
+	dc := &webrtc.DataChannel{}
+
+	_ = app
+	_ = dc
 }

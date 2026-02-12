@@ -186,3 +186,31 @@ func (a *App) pumpMinecraftToChannel(dc *webrtc.DataChannel) {
 	// Keep blocking until closed
 	select {}
 }
+
+func (a *App) StartHostProxy(dc *webrtc.DataChannel, targetAddress string) error {
+	mcConn, err := net.Dial("tcp", targetAddress)
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "log", fmt.Sprintf("Error connecting to Minecraft server: %v", err))
+		return fmt.Errorf("cannot connect to Minecraft server: %w", err)
+	}
+	defer mcConn.Close()
+
+	// Minecraft -> WebRTC
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := mcConn.Read(buf)
+			if err != nil {
+				return
+			}
+			dc.Send(buf[:n])
+		}
+	}()
+
+	// WebRTC -> Minecraft
+	dc.OnMessage(func(msg webrtc.DataChannelMessage) {
+		mcConn.Write(msg.Data)
+	})
+
+	return nil
+}
