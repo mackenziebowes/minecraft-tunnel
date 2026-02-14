@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/pion/webrtc/v3"
@@ -27,6 +28,9 @@ type App struct {
 	ctx            context.Context
 	cancel         context.CancelFunc
 	peerConnection *webrtc.PeerConnection
+	joinerConns    map[net.Conn]struct{}
+	joinerConnMu   sync.Mutex
+	listener       net.Listener
 }
 
 type PeerConnectionManager struct {
@@ -72,6 +76,10 @@ func (a *App) shutdown(ctx context.Context) {
 	if a.cancel != nil {
 		a.cancel()
 	}
+	if a.listener != nil {
+		a.listener.Close()
+		a.listener = nil
+	}
 	if a.peerConnection != nil {
 		a.peerConnection.Close()
 		a.peerConnection = nil
@@ -113,11 +121,27 @@ func (a *App) CreateOffer() (string, error) {
 
 	dataChannel.OnOpen(func() {
 		a.safeEventEmit("status-change", "connected")
-		a.safeEventEmit("log", "P2P Tunnel Established! 🚀")
+		a.safeEventEmit("log", "P2P Tunnel Established!")
 		go a.pumpMinecraftToChannel(dataChannel)
 	})
 
+	dataChannel.OnClose(func() {
+		a.safeEventEmit("status-change", "disconnected")
+		a.safeEventEmit("log", "DataChannel closed")
+	})
+
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
+	})
+
+	peerConnection.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
+		switch state {
+		case webrtc.PeerConnectionStateDisconnected:
+			a.safeEventEmit("status-change", "disconnected")
+			a.safeEventEmit("log", "Peer disconnected")
+		case webrtc.PeerConnectionStateFailed:
+			a.safeEventEmit("status-change", "error")
+			a.safeEventEmit("log", "Connection failed")
+		}
 	})
 
 	offer, err := peerConnection.CreateOffer(nil)
@@ -210,6 +234,30 @@ func (a *App) AcceptOffer(offerToken string) (string, error) {
 
 	a.peerConnection = peerConnection
 
+	peerConnection.OnDataChannel(func(dc *webrtc.DataChannel) {
+		dc.OnOpen(func() {
+			a.safeEventEmit("status-change", "connected")
+			a.safeEventEmit("log", "P2P Tunnel Established!")
+			go a.StartJoinerProxy(dc, "25565")
+		})
+
+		dc.OnClose(func() {
+			a.safeEventEmit("status-change", "disconnected")
+			a.safeEventEmit("log", "Connection closed")
+		})
+	})
+
+	peerConnection.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
+		switch state {
+		case webrtc.PeerConnectionStateDisconnected:
+			a.safeEventEmit("status-change", "disconnected")
+			a.safeEventEmit("log", "Peer disconnected")
+		case webrtc.PeerConnectionStateFailed:
+			a.safeEventEmit("status-change", "error")
+			a.safeEventEmit("log", "Connection failed")
+		}
+	})
+
 	if err := peerConnection.SetRemoteDescription(offer); err != nil {
 		return "", err
 	}
@@ -247,6 +295,7 @@ func (a *App) pumpMinecraftToChannel(dc *webrtc.DataChannel) {
 	// Connect to local Minecraft Server
 	mcConn, err := DialTimeout("tcp", "localhost:25565", TimeoutTCPConnect)
 	if err != nil {
+		a.safeEventEmit("status-change", "error")
 		a.safeEventEmit("log", fmt.Sprintf("Error connecting to Minecraft server: %v", err))
 		return
 	}
@@ -303,18 +352,23 @@ func (a *App) StartHostProxy(dc *webrtc.DataChannel, targetAddress string) error
 }
 
 func (a *App) StartJoinerProxy(dc *webrtc.DataChannel, port string) error {
+	a.joinerConns = make(map[net.Conn]struct{})
+
+	dc.OnMessage(func(msg webrtc.DataChannelMessage) {
+		a.joinerConnMu.Lock()
+		defer a.joinerConnMu.Unlock()
+		for conn := range a.joinerConns {
+			conn.Write(msg.Data)
+		}
+	})
+
 	listener, err := ListenTimeout("tcp", ":"+port, TimeoutNetwork)
 	if err != nil {
 		return fmt.Errorf("failed to listen on port %s: %w", port, err)
 	}
+	a.listener = listener
 
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-			}
-		}()
-		a.safeEventEmit("log", fmt.Sprintf("Listening on port %s for Minecraft client", port))
-	}()
+	a.safeEventEmit("log", fmt.Sprintf("Listening on port %s for Minecraft client", port))
 
 	go func() {
 		for {
@@ -331,24 +385,25 @@ func (a *App) StartJoinerProxy(dc *webrtc.DataChannel, port string) error {
 }
 
 func (a *App) handleJoinerConnection(conn net.Conn, dc *webrtc.DataChannel) {
-	defer conn.Close()
+	a.joinerConnMu.Lock()
+	a.joinerConns[conn] = struct{}{}
+	a.joinerConnMu.Unlock()
 
-	// Minecraft Client -> WebRTC
-	go func() {
-		buf := make([]byte, 4096)
-		for {
-			n, err := conn.Read(buf)
-			if err != nil {
-				return
-			}
-			dc.Send(buf[:n])
-		}
+	defer func() {
+		conn.Close()
+		a.joinerConnMu.Lock()
+		delete(a.joinerConns, conn)
+		a.joinerConnMu.Unlock()
 	}()
 
-	// WebRTC -> Minecraft Client
-	dc.OnMessage(func(msg webrtc.DataChannelMessage) {
-		conn.Write(msg.Data)
-	})
+	buf := make([]byte, 4096)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			return
+		}
+		dc.Send(buf[:n])
+	}
 }
 
 func (a *App) ExportToFile(token string, filepath string) error {
