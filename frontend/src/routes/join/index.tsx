@@ -11,6 +11,7 @@ import {
   Terminal,
   FileUp,
   Link as LinkIcon,
+  RotateCcw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const JoinView = () => {
   const { setRoute } = useAppStore();
-  const { status, logs, answerToken, acceptOffer, addLog, setStatus, importToken, exportToken } =
+  const { status, logs, answerToken, acceptOffer, addLog, setStatus, importToken, exportToken, reset } =
     useTunnelStore();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -112,7 +113,7 @@ export const JoinView = () => {
 
         <CardContent className="space-y-6">
           {/* Offer Input Section */}
-          {status === "disconnected" && (
+          {(status === "disconnected" || status === "error") && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">
                 Paste Offer Token from your friend:
@@ -187,9 +188,9 @@ export const JoinView = () => {
                       className="break-all border-l-2 border-transparent pl-2 hover:border-slate-700 hover:bg-slate-900/50 transition-colors"
                     >
                       <span className="mr-2 text-slate-500">
-                        {new Date().toLocaleTimeString([], { hour12: false })}
+                        {log.timestamp.toLocaleTimeString([], { hour12: false })}
                       </span>
-                      {log}
+                      {log.message}
                     </div>
                   ))}
                   <div ref={scrollRef} />
@@ -203,7 +204,7 @@ export const JoinView = () => {
           <Button
             variant="ghost"
             onClick={() => setRoute("/")}
-            disabled={status !== "disconnected"}
+            disabled={status !== "disconnected" && status !== "error"}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
@@ -214,6 +215,12 @@ export const JoinView = () => {
               <Activity className="w-3 h-3 mr-1" />
               Connected
             </Badge>
+          )}
+          {status === "error" && (
+            <Button variant="outline" onClick={reset}>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
           )}
         </CardFooter>
       </Card>

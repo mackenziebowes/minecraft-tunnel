@@ -10,10 +10,15 @@ import { useToastStore } from "./toastStore";
 
 type TunnelStatus = "disconnected" | "connecting" | "connected" | "error" | "waiting-for-answer" | "waiting-for-host";
 
+interface LogEntry {
+  timestamp: Date;
+  message: string;
+}
+
 interface TunnelState {
   // State
   status: TunnelStatus;
-  logs: string[];
+  logs: LogEntry[];
   offerToken: string;
   answerToken: string;
   mcServerAddress: string;
@@ -29,6 +34,7 @@ interface TunnelState {
   importToken: (file: File) => Promise<string | undefined>;
   addLog: (message: string) => void;
   setStatus: (status: TunnelStatus) => void;
+  reset: () => void;
 }
 
 export const useTunnelStore = create<TunnelState>((set, get) => ({
@@ -36,8 +42,8 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
   logs: [],
   offerToken: "",
   answerToken: "",
-  mcServerAddress: "localhost:25565",
-  proxyPort: "25565",
+  mcServerAddress: "localhost:42517",
+  proxyPort: "42517",
 
   setMcServerAddress: (address) => set({ mcServerAddress: address }),
   setProxyPort: (port) => set({ proxyPort: port }),
@@ -78,11 +84,10 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
       get().addLog("Answer generated - share this with host");
     } catch (err: any) {
       console.error("[FRONTEND] AcceptOffer error:", err);
-      set({ status: "error" });
       get().addLog(`Error: ${err.message || err}`);
       useToastStore.getState().addToast({
         title: "Failed to accept offer",
-        description: err.message || "An unknown error occurred",
+        description: err.message || "An unknown error occurred - try again",
         variant: "destructive",
       });
     }
@@ -98,11 +103,10 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
       get().addLog("Tunnel established!");
     } catch (err: any) {
       console.error("[FRONTEND] AcceptAnswer error:", err);
-      set({ status: "error" });
       get().addLog(`Error: ${err.message || err}`);
       useToastStore.getState().addToast({
         title: "Failed to accept answer",
-        description: err.message || "An unknown error occurred",
+        description: err.message || "An unknown error occurred - try again",
         variant: "destructive",
       });
     }
@@ -161,6 +165,7 @@ export const useTunnelStore = create<TunnelState>((set, get) => ({
   },
 
   addLog: (message) =>
-    set((state) => ({ logs: [...state.logs, message] })),
+    set((state) => ({ logs: [...state.logs, { timestamp: new Date(), message }] })),
   setStatus: (status) => set({ status }),
+  reset: () => set({ status: "disconnected", logs: [], offerToken: "", answerToken: "" }),
 }));

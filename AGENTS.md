@@ -118,6 +118,10 @@ import { useTunnelStore } from "@/lib/tunnelStore";
 - Go: Add to go.mod, run `go mod tidy`
 - Frontend: `npm install package` or `npx shadcn@latest add component`
 
+## Testing Documentation
+
+When testing the application, document all issues, observations, and discussions in `docs/testing-issues.md`. This serves as a running log of problems found and fixes needed.
+
 ## Notes
 
 - No test infrastructure currently set up - add Go tests (`_test.go`) or configure Vitest/Jest for frontend

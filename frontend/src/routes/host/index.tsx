@@ -5,7 +5,7 @@ import { EventsOn, EventsOff } from "../../../wailsjs/runtime/runtime";
 import { TokenCard } from "@/components/custom/token-card";
 import Sigil from "@/components/custom/sigil";
 
-import { Power, ArrowLeft, Activity, Terminal, Server } from "lucide-react";
+import { Power, ArrowLeft, Activity, Terminal, Server, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ export const HostView = () => {
     generateOffer,
     acceptAnswer,
     exportToken,
+    reset,
   } = useTunnelStore();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -97,7 +98,7 @@ export const HostView = () => {
             </Label>
             <Input
               id="server-address"
-              placeholder="localhost:25565"
+              placeholder="localhost:42517"
               value={mcServerAddress}
               onChange={(e) => setMcServerAddress(e.target.value)}
               disabled={isRunning}
@@ -168,9 +169,9 @@ export const HostView = () => {
                       className="break-all border-l-2 border-transparent pl-2 hover:border-slate-700 hover:bg-slate-900/50 transition-colors"
                     >
                       <span className="mr-2 text-slate-500">
-                        {new Date().toLocaleTimeString([], { hour12: false })}
+                        {log.timestamp.toLocaleTimeString([], { hour12: false })}
                       </span>
-                      {log}
+                      {log.message}
                     </div>
                   ))}
                   <div ref={scrollRef} />
@@ -184,7 +185,7 @@ export const HostView = () => {
           <Button
             variant="ghost"
             onClick={() => setRoute("/")}
-            disabled={status !== "disconnected"}
+            disabled={status !== "disconnected" && status !== "error"}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back

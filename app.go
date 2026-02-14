@@ -238,7 +238,7 @@ func (a *App) AcceptOffer(offerToken string) (string, error) {
 		dc.OnOpen(func() {
 			a.safeEventEmit("status-change", "connected")
 			a.safeEventEmit("log", "P2P Tunnel Established!")
-			go a.StartJoinerProxy(dc, "25565")
+			go a.StartJoinerProxy(dc, "42517")
 		})
 
 		dc.OnClose(func() {
@@ -293,7 +293,7 @@ func (a *App) AcceptOffer(offerToken string) (string, error) {
 // Helper: Connects DataChannel <-> Local Minecraft
 func (a *App) pumpMinecraftToChannel(dc *webrtc.DataChannel) {
 	// Connect to local Minecraft Server
-	mcConn, err := DialTimeout("tcp", "localhost:25565", TimeoutTCPConnect)
+	mcConn, err := DialTimeout("tcp", "localhost:42517", TimeoutTCPConnect)
 	if err != nil {
 		a.safeEventEmit("status-change", "error")
 		a.safeEventEmit("log", fmt.Sprintf("Error connecting to Minecraft server: %v", err))
