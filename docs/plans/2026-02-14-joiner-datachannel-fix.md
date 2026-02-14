@@ -317,3 +317,226 @@ func (a *App) AcceptOffer(offerToken string) (string, error) {
 1. **Unit test**: Create offer, accept offer, verify `OnDataChannel` is called
 2. **Integration test**: Host creates offer, joiner accepts, verify DataChannel opens on both sides
 3. **E2E test**: Run two app instances, exchange tokens, verify Minecraft traffic flows
+
+---
+
+## Edge Case Analysis
+
+### 1. Connection Failures
+
+| Scenario | Current Handling | Issue |
+|----------|------------------|-------|
+| ICE timeout | ✅ Returns error after 30s | None |
+| MC server offline (host) | ⚠️ Logs error, returns | No status change to "error" |
+| Port in use (joiner) | ⚠️ Returns error | Handler not wired |
+| Invalid token | ✅ Returns descriptive error | None |
+
+**Fix for MC server offline:**
+```go
+// In pumpMinecraftToChannel(), after connection failure:
+if err != nil {
+    a.safeEventEmit("status-change", "error")
+    a.safeEventEmit("log", fmt.Sprintf("Error connecting to Minecraft server: %v", err))
+    return
+}
+```
+
+### 2. Connection Lifecycle (GAPS)
+
+| Scenario | Current Handling | Issue |
+|----------|------------------|-------|
+| Peer disconnects | ❌ Nothing | No `OnClose` on DataChannel |
+| Connection state changes | ❌ Nothing | No `OnConnectionStateChange` |
+| App shutdown | ⚠️ Closes PC only | TCP connections leak, listener leaks |
+
+**Fix: Add connection state handlers**
+
+For host (in `CreateOffer()`):
+```go
+dataChannel.OnClose(func() {
+    a.safeEventEmit("status-change", "disconnected")
+    a.safeEventEmit("log", "DataChannel closed")
+})
+
+peerConnection.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
+    if state == webrtc.PeerConnectionStateDisconnected || 
+       state == webrtc.PeerConnectionStateFailed {
+        a.safeEventEmit("status-change", "error")
+        a.safeEventEmit("log", fmt.Sprintf("Connection %s", state))
+    }
+})
+```
+
+For joiner (in `AcceptOffer()` - same pattern).
+
+### 3. Multiple Connections (CRITICAL BUG)
+
+**Issue in `handleJoinerConnection()` (app.go:349-351):**
+
+```go
+dc.OnMessage(func(msg webrtc.DataChannelMessage) {
+    conn.Write(msg.Data)  // ← Overwrites previous handler!
+})
+```
+
+If two Minecraft clients connect to the joiner:
+- Both call `dc.OnMessage()`
+- The **last one wins** - only one client receives data
+- The other client's traffic still goes out but nothing comes back
+
+**Fix: Single OnMessage handler with connection tracking**
+
+```go
+type App struct {
+    ctx            context.Context
+    cancel         context.CancelFunc
+    peerConnection *webrtc.PeerConnection
+    joinerConns    map[net.Conn]struct{}  // Track active connections
+    joinerConnMu   sync.Mutex
+}
+
+func (a *App) StartJoinerProxy(dc *webrtc.DataChannel, port string) error {
+    a.joinerConns = make(map[net.Conn]struct{})
+    
+    // Set up single message handler that broadcasts to all connections
+    dc.OnMessage(func(msg webrtc.DataChannelMessage) {
+        a.joinerConnMu.Lock()
+        defer a.joinerConnMu.Unlock()
+        for conn := range a.joinerConns {
+            conn.Write(msg.Data)
+        }
+    })
+    
+    listener, _ := ListenTimeout("tcp", ":"+port, TimeoutNetwork)
+    // ... accept loop ...
+}
+
+func (a *App) handleJoinerConnection(conn net.Conn, dc *webrtc.DataChannel) {
+    a.joinerConnMu.Lock()
+    a.joinerConns[conn] = struct{}{}
+    a.joinerConnMu.Unlock()
+    
+    defer func() {
+        conn.Close()
+        a.joinerConnMu.Lock()
+        delete(a.joinerConns, conn)
+        a.joinerConnMu.Unlock()
+    }()
+    
+    // Only read from conn -> dc, no OnMessage here
+    buf := make([]byte, 4096)
+    for {
+        n, err := conn.Read(buf)
+        if err != nil {
+            return
+        }
+        dc.Send(buf[:n])
+    }
+}
+```
+
+### 4. Resource Leaks
+
+| Resource | Issue | Fix |
+|----------|-------|-----|
+| `select {}` in `pumpMinecraftToChannel` | Blocks forever, even if TCP closes | Use channel to signal shutdown |
+| Listener in `StartJoinerProxy` | Never closed, no reference stored | Store in App, close on shutdown |
+| Old PeerConnection | Calling `CreateOffer()` twice leaks first | Close existing before creating new |
+
+**Fix: Store listener and close on shutdown**
+
+```go
+type App struct {
+    // ... existing fields ...
+    listener net.Listener
+}
+
+func (a *App) shutdown(ctx context.Context) {
+    if a.cancel != nil {
+        a.cancel()
+    }
+    if a.listener != nil {
+        a.listener.Close()
+    }
+    if a.peerConnection != nil {
+        a.peerConnection.Close()
+        a.peerConnection = nil
+    }
+}
+```
+
+**Fix: Check for existing PeerConnection**
+
+```go
+func (a *App) CreateOffer() (string, error) {
+    // Close existing connection if any
+    if a.peerConnection != nil {
+        a.peerConnection.Close()
+        a.peerConnection = nil
+    }
+    // ... rest of function ...
+}
+```
+
+### 5. Context Cancellation
+
+Goroutines in `pumpMinecraftToChannel()` and `StartJoinerProxy()` don't check context.
+
+**Fix: Use context for graceful shutdown**
+
+```go
+func (a *App) pumpMinecraftToChannel(dc *webrtc.DataChannel) {
+    mcConn, err := DialTimeout("tcp", "localhost:25565", TimeoutTCPConnect)
+    if err != nil {
+        a.safeEventEmit("status-change", "error")
+        a.safeEventEmit("log", fmt.Sprintf("Error: %v", err))
+        return
+    }
+    defer mcConn.Close()
+
+    done := make(chan struct{})
+    defer close(done)
+
+    go func() {
+        buf := make([]byte, 1500)
+        for {
+            select {
+            case <-done:
+                return
+            default:
+                n, err := mcConn.Read(buf)
+                if err != nil {
+                    return
+                }
+                dc.Send(buf[:n])
+            }
+        }
+    }()
+
+    select {
+    case <-a.ctx.Done():
+        a.safeEventEmit("log", "Shutting down tunnel")
+    }
+}
+```
+
+---
+
+## Implementation Priority
+
+### Critical (must fix for MVP)
+
+1. **Add `OnDataChannel` handler** - The joiner won't work without this
+2. **Fix OnMessage race** - Multiple clients will cause data loss
+
+### High Priority (should fix before release)
+
+3. Add `OnClose` and `OnConnectionStateChange` handlers
+4. Store and close listener on shutdown
+5. Handle MC server connection failure with status update
+
+### Medium Priority (nice to have)
+
+6. Use context for goroutine cancellation
+7. Check for existing PeerConnection before creating new
+8. Add reconnect capability
