@@ -540,3 +540,223 @@ func (a *App) pumpMinecraftToChannel(dc *webrtc.DataChannel) {
 6. Use context for goroutine cancellation
 7. Check for existing PeerConnection before creating new
 8. Add reconnect capability
+
+---
+
+## Implementation Plan
+
+### Phase 1: Critical Fixes (MVP)
+
+**Task 1.1: Add OnDataChannel handler to AcceptOffer()**
+
+File: `app.go`
+
+Changes:
+```go
+func (a *App) AcceptOffer(offerToken string) (string, error) {
+    // ... existing code ...
+    
+    peerConnection, err := webrtc.NewPeerConnection(config)
+    if err != nil {
+        return "", err
+    }
+    a.peerConnection = peerConnection
+    
+    // NEW: Handle incoming DataChannel from host
+    peerConnection.OnDataChannel(func(dc *webrtc.DataChannel) {
+        dc.OnOpen(func() {
+            a.safeEventEmit("status-change", "connected")
+            a.safeEventEmit("log", "P2P Tunnel Established!")
+            go a.StartJoinerProxy(dc, "25565")
+        })
+        
+        dc.OnClose(func() {
+            a.safeEventEmit("status-change", "disconnected")
+            a.safeEventEmit("log", "Connection closed")
+        })
+    })
+    
+    // ... rest of existing code ...
+}
+```
+
+**Task 1.2: Fix OnMessage race condition in StartJoinerProxy()**
+
+File: `app.go`
+
+Changes:
+1. Add `joinerConns` map and mutex to App struct
+2. Move `OnMessage` to `StartJoinerProxy()` (single handler)
+3. Broadcast messages to all connections
+4. Track connections in `handleJoinerConnection()`
+
+```go
+type App struct {
+    ctx            context.Context
+    cancel         context.CancelFunc
+    peerConnection *webrtc.PeerConnection
+    joinerConns    map[net.Conn]struct{}
+    joinerConnMu   sync.Mutex
+    listener       net.Listener
+}
+
+func (a *App) StartJoinerProxy(dc *webrtc.DataChannel, port string) error {
+    a.joinerConns = make(map[net.Conn]struct{})
+    
+    // Single message handler that broadcasts to all connections
+    dc.OnMessage(func(msg webrtc.DataChannelMessage) {
+        a.joinerConnMu.Lock()
+        defer a.joinerConnMu.Unlock()
+        for conn := range a.joinerConns {
+            conn.Write(msg.Data)
+        }
+    })
+    
+    listener, err := ListenTimeout("tcp", ":"+port, TimeoutNetwork)
+    if err != nil {
+        return fmt.Errorf("failed to listen on port %s: %w", port, err)
+    }
+    a.listener = listener
+    
+    go func() {
+        for {
+            conn, err := listener.Accept()
+            if err != nil {
+                return
+            }
+            go a.handleJoinerConnection(conn, dc)
+        }
+    }()
+    
+    return nil
+}
+
+func (a *App) handleJoinerConnection(conn net.Conn, dc *webrtc.DataChannel) {
+    a.joinerConnMu.Lock()
+    a.joinerConns[conn] = struct{}{}
+    a.joinerConnMu.Unlock()
+    
+    defer func() {
+        conn.Close()
+        a.joinerConnMu.Lock()
+        delete(a.joinerConns, conn)
+        a.joinerConnMu.Unlock()
+    }()
+    
+    buf := make([]byte, 4096)
+    for {
+        n, err := conn.Read(buf)
+        if err != nil {
+            return
+        }
+        dc.Send(buf[:n])
+    }
+}
+```
+
+### Phase 2: High Priority Fixes
+
+**Task 2.1: Add connection state handlers (host side)**
+
+File: `app.go`
+
+In `CreateOffer()`, add after DataChannel creation:
+```go
+dataChannel.OnClose(func() {
+    a.safeEventEmit("status-change", "disconnected")
+    a.safeEventEmit("log", "DataChannel closed")
+})
+
+peerConnection.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
+    switch state {
+    case webrtc.PeerConnectionStateConnected:
+        // Already handled by OnOpen
+    case webrtc.PeerConnectionStateDisconnected:
+        a.safeEventEmit("status-change", "disconnected")
+        a.safeEventEmit("log", "Peer disconnected")
+    case webrtc.PeerConnectionStateFailed:
+        a.safeEventEmit("status-change", "error")
+        a.safeEventEmit("log", "Connection failed")
+    }
+})
+```
+
+**Task 2.2: Add connection state handlers (joiner side)**
+
+File: `app.go`
+
+In `AcceptOffer()`, add same pattern after PeerConnection creation.
+
+**Task 2.3: Close listener on shutdown**
+
+File: `app.go`
+
+```go
+func (a *App) shutdown(ctx context.Context) {
+    if a.cancel != nil {
+        a.cancel()
+    }
+    if a.listener != nil {
+        a.listener.Close()
+        a.listener = nil
+    }
+    if a.peerConnection != nil {
+        a.peerConnection.Close()
+        a.peerConnection = nil
+    }
+}
+```
+
+**Task 2.4: Emit error status when MC server offline**
+
+File: `app.go`
+
+In `pumpMinecraftToChannel()`:
+```go
+mcConn, err := DialTimeout("tcp", "localhost:25565", TimeoutTCPConnect)
+if err != nil {
+    a.safeEventEmit("status-change", "error")  // ADD THIS
+    a.safeEventEmit("log", fmt.Sprintf("Error connecting to Minecraft server: %v", err))
+    return
+}
+```
+
+### Phase 3: Medium Priority (Polish)
+
+**Task 3.1: Check for existing PeerConnection**
+
+In `CreateOffer()` and `AcceptOffer()`:
+```go
+if a.peerConnection != nil {
+    a.peerConnection.Close()
+    a.peerConnection = nil
+}
+```
+
+**Task 3.2: Use context for graceful shutdown**
+
+This is more involved - requires refactoring the pump functions to select on `ctx.Done()`.
+
+### Testing Plan
+
+1. **Unit test**: `AcceptOffer` sets `OnDataChannel` handler
+2. **Unit test**: `StartJoinerProxy` creates listener and single `OnMessage` handler
+3. **Integration test**: Full offer/answer exchange, verify DataChannel opens both sides
+4. **Manual test**: Two app instances, exchange tokens, connect Minecraft client
+
+### Files Changed
+
+| File | Changes |
+|------|---------|
+| `app.go` | All fixes (OnDataChannel, OnMessage refactor, state handlers, shutdown) |
+| `frontend/src/lib/tunnelStore.ts` | Already has `proxyPort` state, may need to pass to backend |
+
+### Estimated Effort
+
+| Phase | Tasks | Estimate |
+|-------|-------|----------|
+| Phase 1 | 1.1, 1.2 | 30-60 min |
+| Phase 2 | 2.1-2.4 | 30 min |
+| Phase 3 | 3.1, 3.2 | 30 min |
+| Testing | Unit + manual | 30 min |
+| **Total** | | **2-2.5 hours** |
