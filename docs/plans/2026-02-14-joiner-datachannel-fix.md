@@ -760,3 +760,26 @@ This is more involved - requires refactoring the pump functions to select on `ct
 | Phase 3 | 3.1, 3.2 | 30 min |
 | Testing | Unit + manual | 30 min |
 | **Total** | | **2-2.5 hours** |
+
+---
+
+## Implementation Status
+
+**Completed: 2026-02-14**
+
+All Phase 1 and Phase 2 tasks have been implemented:
+
+| Task | Status | Commit |
+|------|--------|--------|
+| 1.1 OnDataChannel handler | ✅ Done | db60e28 |
+| 1.2 OnMessage race fix | ✅ Done | db60e28 |
+| 2.1 Host state handlers | ✅ Done | db60e28 |
+| 2.2 Joiner state handlers | ✅ Done | db60e28 |
+| 2.3 Close listener on shutdown | ✅ Done | db60e28 |
+| 2.4 Error status on MC offline | ✅ Done | db60e28 |
+
+**Remaining (Phase 3 - Polish):**
+- 3.1 Check for existing PeerConnection before creating new
+- 3.2 Use context for graceful shutdown in pump functions
+
+**Tests:** All existing tests pass.
